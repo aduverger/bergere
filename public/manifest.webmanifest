@@ -1,0 +1,16 @@
+{
+  "name": "Pi · Herdr",
+  "short_name": "Pi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#161514",
+  "theme_color": "#161514",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
