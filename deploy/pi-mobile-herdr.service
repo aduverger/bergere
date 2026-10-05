@@ -1,0 +1,16 @@
+[Unit]
+Description=Private Pi Herdr mobile gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/YOUR_USER/code/pi-mobile-herdr
+ExecStart=/ABSOLUTE/PATH/TO/node dist/server/main.js
+EnvironmentFile=%h/.config/pi-mobile-herdr/gateway.env
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
