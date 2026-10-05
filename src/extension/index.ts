@@ -248,6 +248,10 @@ export default function companion(pi: ExtensionAPI) {
     context = ctx;
     schedule();
   });
+  pi.on("thinking_level_select", (event) => {
+    thinking = event.level;
+    schedule();
+  });
   pi.on("model_select", (event, ctx) => {
     context = ctx;
     model = `${event.model.provider}/${event.model.id}`;

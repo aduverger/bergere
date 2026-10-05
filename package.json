@@ -14,8 +14,9 @@
     "start": "node dist/server/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:browser": "playwright test",
-    "check": "pnpm typecheck && pnpm test && pnpm build"
+    "test:browser": "pnpm build && playwright test",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
+    "demo": "tsx scripts/local-harness.ts"
   },
   "pi": {
     "extensions": [
@@ -31,6 +32,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@earendil-works/pi-ai": "1.0.3",
     "@earendil-works/pi-coding-agent": "1.0.3",
     "@playwright/test": "latest",
     "@types/node": "^24.0.0",

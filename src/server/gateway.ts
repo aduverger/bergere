@@ -7,7 +7,6 @@ import {
   applyPatch,
   decodeClient,
   decodeCompanion,
-  type Ack,
   type Registration,
   type ServerMessage,
   type Session,
@@ -34,10 +33,27 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
       "Bridge directory must be owned by this user and mode 0700.",
     );
   try {
-    await fs.lstat(c.bridgeSocket);
-    throw new Error(
-      "Bridge socket already exists. Stop the other gateway, or remove its stale socket after verifying it is not running.",
-    );
+    const existing = await fs.lstat(c.bridgeSocket);
+    if (!existing.isSocket() || existing.uid !== process.getuid?.())
+      throw new Error("Bridge path is not a socket owned by this user.");
+    await new Promise<void>((resolve, reject) => {
+      const probe = net.createConnection(c.bridgeSocket);
+      probe.setTimeout(1000, () =>
+        probe.destroy(new Error("Bridge probe timed out")),
+      );
+      probe.once("connect", () => {
+        probe.destroy();
+        reject(new Error("Another gateway is already running."));
+      });
+      probe.once("error", (error: NodeJS.ErrnoException) => {
+        if (error.code === "ECONNREFUSED") resolve();
+        else reject(error);
+      });
+    });
+    const current = await fs.lstat(c.bridgeSocket);
+    if (current.ino !== existing.ino)
+      throw new Error("Bridge socket changed during startup.");
+    await fs.unlink(c.bridgeSocket);
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
   }
@@ -46,7 +62,14 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
   const attachments = new Map<string, Attachment>();
   const browsers = new Map<WebSocket, string>();
   const connections = new Set<net.Socket>();
-  const pending = new Map<string, Set<WebSocket>>();
+  const pending = new Map<
+    string,
+    { clients: Set<WebSocket>; timer: ReturnType<typeof setTimeout> }
+  >();
+  function clearPending(id: string) {
+    clearTimeout(pending.get(id)?.timer);
+    pending.delete(id);
+  }
   const key = (generation: string, id: string) => `${generation}:${id}`;
   function send(ws: WebSocket, msg: ServerMessage) {
     if (ws.readyState !== WebSocket.OPEN) return;
@@ -110,11 +133,12 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
   function drop(a: Attachment) {
     if (attachments.get(a.registration.paneId) !== a) return;
     attachments.delete(a.registration.paneId);
+    console.info("Companion detached");
     unavailable(
       a.registration.paneId,
       "Companion disconnected. Delivery of unacknowledged commands is uncertain.",
     );
-    for (const [id, clients] of pending)
+    for (const [id, { clients }] of pending)
       if (id.startsWith(a.state.generation + ":")) {
         for (const ws of clients)
           send(ws, {
@@ -124,7 +148,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
             error:
               "Command delivery is uncertain. Check the transcript before sending again.",
           });
-        pending.delete(id);
+        clearPending(id);
       }
     publishSessions();
   }
@@ -157,12 +181,16 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
             if (!valid(candidate, snapshot))
               throw new Error("Session mismatch");
             const old = attachments.get(msg.paneId);
-            if (old && old.socket !== socket) old.socket.destroy();
+            if (old) {
+              drop(old);
+              if (old.socket !== socket) old.socket.destroy();
+            }
             if (attachment && attachment !== old) drop(attachment);
             herdr = snapshot;
             discoveryError = "";
             attachment = candidate;
             attachments.set(msg.paneId, candidate);
+            console.info("Companion attached");
             publishSessions();
             for (const [ws, selected] of browsers)
               if (selected === msg.paneId)
@@ -178,8 +206,8 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
             if (msg.type === "ack") {
               if (msg.generation !== attachment.state.generation) return;
               const id = key(msg.generation, msg.id);
-              for (const ws of pending.get(id) ?? []) send(ws, msg);
-              pending.delete(id);
+              for (const ws of pending.get(id)?.clients ?? []) send(ws, msg);
+              clearPending(id);
               return;
             }
             if (msg.type === "snapshot") {
@@ -200,6 +228,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
           }
         })
         .catch(() => {
+          console.warn("Companion registration or protocol rejected");
           socket.destroy();
         });
     });
@@ -282,7 +311,10 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
     ws.on("close", () => {
       clearInterval(heartbeat);
       browsers.delete(ws);
-      for (const clients of pending.values()) clients.delete(ws);
+      for (const [id, { clients }] of pending) {
+        clients.delete(ws);
+        if (!clients.size) clearPending(id);
+      }
     });
     ws.on("error", () => {});
     ws.on("message", async (raw) => {
@@ -337,15 +369,25 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
           !valid(a, snapshot) ||
           attachments.get(msg.paneId) !== a ||
           a.state.generation !== msg.generation ||
+          browsers.get(ws) !== msg.paneId ||
           ws.readyState !== WebSocket.OPEN
         ) {
           fail("Session is no longer attached.");
           return;
         }
         const id = key(msg.generation, msg.id);
-        const clients = pending.get(id) ?? new Set<WebSocket>();
-        clients.add(ws);
-        pending.set(id, clients);
+        let entry = pending.get(id);
+        if (!entry) {
+          const clients = new Set<WebSocket>();
+          const timer = setTimeout(() => {
+            for (const client of clients)
+              client.close(1013, "Command acknowledgement timed out");
+            clearPending(id);
+          }, 15000);
+          entry = { clients, timer };
+          pending.set(id, entry);
+        }
+        entry.clients.add(ws);
         sendLine(a.socket, msg);
       } catch {
         fail("Herdr is unavailable. Command was not sent.");
@@ -355,6 +397,8 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
   const stopWatch = watchHerdr(
     c.herdrSocket,
     (s) => {
+      const recovered = !herdr;
+      if (recovered) console.info("Herdr discovery connected");
       herdr = s;
       discoveryError = "";
       for (const a of attachments.values())
@@ -363,8 +407,20 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
           a.socket.destroy();
         }
       publishSessions();
+      if (recovered)
+        for (const [ws, paneId] of browsers) {
+          const a = attachments.get(paneId);
+          if (a && valid(a))
+            send(ws, {
+              type: "snapshot",
+              version: 1,
+              paneId,
+              snapshot: a.state,
+            });
+        }
     },
     () => {
+      if (herdr) console.warn("Herdr discovery disconnected");
       herdr = undefined;
       discoveryError = "Herdr disconnected. Waiting to reconnect.";
       for (const a of attachments.values()) {
@@ -373,10 +429,14 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
       publishSessions();
     },
   );
+  let bridgeOwned = false;
   try {
     await new Promise<void>((resolve, reject) => {
       bridge.once("error", reject);
-      bridge.listen(c.bridgeSocket, () => resolve());
+      bridge.listen(c.bridgeSocket, () => {
+        bridgeOwned = true;
+        resolve();
+      });
     });
     await fs.chmod(c.bridgeSocket, 0o600);
     await new Promise<void>((resolve, reject) => {
@@ -385,9 +445,12 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
     });
   } catch (error) {
     stopWatch();
-    bridge.close();
+    for (const socket of connections) socket.destroy();
+    for (const id of pending.keys()) clearPending(id);
+    if (bridgeOwned)
+      await new Promise<void>((resolve) => bridge.close(() => resolve()));
     server.close();
-    await fs.unlink(c.bridgeSocket).catch(() => {});
+    wss.close();
     throw error;
   }
   console.info(
@@ -395,6 +458,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
   );
   return async () => {
     stopWatch();
+    for (const id of pending.keys()) clearPending(id);
     for (const ws of browsers.keys()) ws.terminate();
     for (const socket of connections) socket.destroy();
     wss.close();
@@ -402,6 +466,5 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
       new Promise<void>((r) => server.close(() => r())),
       new Promise<void>((r) => bridge.close(() => r())),
     ]);
-    await fs.unlink(c.bridgeSocket).catch(() => {});
   };
 }

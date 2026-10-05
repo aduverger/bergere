@@ -43,7 +43,7 @@ export function bridgeDialogs(
     )) === true;
   ui.input = async (title, placeholder, opts) =>
     (await broker.request(
-      { ...base, kind: "input", title, prefill: placeholder ?? "" },
+      { ...base, kind: "input", title, message: placeholder ?? "" },
       (signal) =>
         original.input.call(ui, title, placeholder, { ...opts, signal }),
       opts,

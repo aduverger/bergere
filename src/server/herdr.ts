@@ -126,6 +126,8 @@ export function watchHerdr(
     current.on("error", () => {});
     current.once("close", () => {
       if (stopped) return;
+      generation++;
+      dirty = false;
       onError();
       retry = setTimeout(connect, 1000);
     });
