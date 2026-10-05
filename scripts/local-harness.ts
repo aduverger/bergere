@@ -60,7 +60,10 @@ export async function localHarness(port = 8788) {
       server.kill("SIGTERM");
     }
     await waitFor(
-      () => (server.exitCode !== null ? true : undefined),
+      () =>
+        server.exitCode !== null || server.signalCode !== null
+          ? true
+          : undefined,
       5000,
     ).catch(() => server.kill("SIGTERM"));
     await rm(root, { recursive: true, force: true });
@@ -138,10 +141,13 @@ export async function localHarness(port = 8788) {
 if (process.argv[1]?.endsWith("local-harness.ts")) {
   const harness = await localHarness(Number(process.env.PMH_TEST_PORT ?? 8788));
   console.info(`LOCAL_HARNESS_READY http://127.0.0.1:${harness.config.port}`);
+  let closing = false;
   const close = async () => {
+    if (closing) return;
+    closing = true;
     await harness.close();
     process.exit(0);
   };
-  process.once("SIGINT", close);
-  process.once("SIGTERM", close);
+  process.on("SIGINT", close);
+  process.on("SIGTERM", close);
 }
