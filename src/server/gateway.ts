@@ -1,4 +1,6 @@
 import net from "node:net";
+import { browserMessage, browserTool } from "./browser-transcript.js";
+import { transcriptTools } from "../shared/transcript.js";
 import http from "node:http";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -77,6 +79,38 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
       ws.close(1013, "Reconnect for fresh state");
       return;
     }
+    if (msg.type === "snapshot")
+      msg = {
+        ...msg,
+        snapshot: {
+          ...msg.snapshot,
+          messages: msg.snapshot.messages.map(browserMessage),
+          tools: msg.snapshot.tools.map(browserTool),
+        },
+      };
+    if (msg.type === "patch")
+      msg = {
+        ...msg,
+        patch: {
+          ...msg.patch,
+          ...(msg.patch.messages
+            ? {
+                messages: {
+                  ...msg.patch.messages,
+                  items: msg.patch.messages.items.map(browserMessage),
+                },
+              }
+            : {}),
+          ...(msg.patch.tools
+            ? {
+                tools: {
+                  ...msg.patch.tools,
+                  items: msg.patch.tools.items.map(browserTool),
+                },
+              }
+            : {}),
+        },
+      };
     ws.send(JSON.stringify(msg));
   }
   function valid(a: Attachment, s = herdr) {
@@ -285,6 +319,30 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
     }
     try {
       const url = new URL(req.url ?? "/", c.origin);
+      if (url.pathname === "/api/tool") {
+        const attachment = attachments.get(
+          url.searchParams.get("paneId") ?? "",
+        );
+        if (
+          !attachment ||
+          !valid(attachment) ||
+          attachment.state.generation !== url.searchParams.get("generation")
+        ) {
+          res.writeHead(409).end("Session changed. Reopen the tool.");
+          return;
+        }
+        const tool = transcriptTools(
+          attachment.state.messages,
+          attachment.state.tools,
+        ).get(url.searchParams.get("id") ?? "");
+        if (!tool) {
+          res.writeHead(404).end("Tool no longer available.");
+          return;
+        }
+        res.setHeader("Content-Type", "application/json");
+        res.end(req.method === "HEAD" ? undefined : JSON.stringify(tool));
+        return;
+      }
       const relative = decodeURIComponent(url.pathname);
       const file = path.resolve(
         c.webRoot,

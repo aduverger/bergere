@@ -1,3 +1,8 @@
+import {
+  browserMessage,
+  browserTool,
+} from "../../src/server/browser-transcript";
+import { transcriptTools } from "../../src/shared/transcript";
 import { test, expect } from "@playwright/test";
 import http from "node:http";
 import { readFile } from "node:fs/promises";
@@ -15,14 +20,17 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
   const messages: Message[] = [];
   const output =
     "## Output\n\n" +
-    "- Synthetic tool output with **Markdown** and `code`.\n".repeat(180);
+    "- Synthetic tool output with **Markdown** and `code`.\n".repeat(360);
   for (let i = 0; i < 290; i++) {
     messages.push({
       id: `a${i}`,
       role: "assistant",
       content: [
         { type: "text", text: `Step ${i}: checking the workspace.` },
-        { type: "thinking", thinking: output },
+        {
+          type: "thinking",
+          thinking: "Inspect the workspace before making changes.",
+        },
         {
           type: "toolCall",
           id: `t${i}`,
@@ -44,7 +52,16 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     sessionId: "s",
     sessionPath: "/s",
     messages,
-    tools: [],
+    tools: [
+      {
+        id: "nested",
+        parentToolCallId: "t289",
+        name: "read",
+        args: { path: "nested.ts" },
+        content: [{ type: "text", text: "Deferred nested output" }],
+        status: "success",
+      },
+    ],
     dialogs: [],
     models: [],
     model: "",
@@ -53,8 +70,28 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     terminalOnly: false,
     error: "",
   };
+  let detailRequests = 0;
+  const browserState = {
+    ...state,
+    messages: state.messages.map(browserMessage),
+    tools: state.tools.map(browserTool),
+  };
+  expect(Buffer.byteLength(JSON.stringify(browserState))).toBeLessThan(250000);
   const server = http.createServer(async (req, res) => {
     try {
+      const url = new URL(req.url!, "http://localhost");
+      if (url.pathname === "/api/tool") {
+        detailRequests++;
+        res.setHeader("Content-Type", "application/json");
+        res.end(
+          JSON.stringify(
+            transcriptTools(state.messages, state.tools).get(
+              url.searchParams.get("id")!,
+            ),
+          ),
+        );
+        return;
+      }
       const file = path.resolve(
         "dist/web",
         "." + (req.url === "/" ? "/index.html" : req.url),
@@ -100,7 +137,7 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
           type: "snapshot",
           version: 2,
           paneId: "p",
-          snapshot: state,
+          snapshot: browserState,
         }),
       ),
     );
@@ -137,7 +174,11 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
         },
       ],
     };
-    const patch = diffSnapshot(state, next);
+    const patch = diffSnapshot(browserState, {
+      ...next,
+      messages: next.messages.map(browserMessage),
+      tools: next.tools.map(browserTool),
+    });
     expect(JSON.stringify(patch).length).toBeLessThan(300);
     for (const ws of wss.clients)
       ws.send(
@@ -146,12 +187,29 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     await expect(
       page.getByText("Incremental response", { exact: true }),
     ).toBeVisible();
-    await page.locator("details.tool summary").last().click();
+    expect(detailRequests).toBe(0);
+    await page.locator("details.activity > summary").last().click();
+    await page
+      .locator("details.tool summary")
+      .filter({ hasText: "nested.ts" })
+      .click();
     await expect(page.locator(".tool-body")).toHaveCount(1);
-    await page.locator("details.tool summary").last().click();
+    await expect(
+      page.getByText("Deferred nested output", { exact: true }),
+    ).toBeVisible();
+    expect(detailRequests).toBe(1);
+    const order = await page.locator(".transcript").innerText();
+    expect(order.indexOf("nested.ts")).toBeLessThan(
+      order.indexOf("Incremental response"),
+    );
+    await page
+      .locator("details.tool summary")
+      .filter({ hasText: "nested.ts" })
+      .click();
     await expect(page.locator(".tool-body")).toHaveCount(0);
     console.log(
       JSON.stringify({
+        browserSnapshotBytes: Buffer.byteLength(JSON.stringify(browserState)),
         snapshotBytes: Buffer.byteLength(JSON.stringify(state)),
         patchBytes: Buffer.byteLength(JSON.stringify(patch)),
         elements: count,

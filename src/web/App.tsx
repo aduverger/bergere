@@ -320,7 +320,13 @@ export function App() {
               </div>
             )}
             {snapshot && (
-              <Transcript messages={snapshot.messages} live={snapshot.tools} />
+              <Transcript
+                key={snapshot.generation}
+                messages={snapshot.messages}
+                live={snapshot.tools}
+                paneId={selected}
+                generation={snapshot.generation}
+              />
             )}
             {snapshot?.dialogs.map((d) => (
               <DialogCard

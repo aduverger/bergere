@@ -23,11 +23,14 @@ export const MessageSchema = Schema.Struct({
   id: text,
   role: text,
   content: Schema.Array(BlockSchema),
+  detailsDeferred: Schema.optional(Schema.Boolean),
   toolCallId: Schema.optional(text),
   toolName: Schema.optional(text),
   isError: Schema.optional(Schema.Boolean),
 });
 export const ToolSchema = Schema.Struct({
+  parentToolCallId: Schema.optional(text),
+  detailsDeferred: Schema.optional(Schema.Boolean),
   id: text,
   name: text,
   args: Schema.Unknown,

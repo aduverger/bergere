@@ -245,7 +245,6 @@ export default function companion(pi: ExtensionAPI) {
   pi.on("agent_start", (_event, ctx) => {
     context = ctx;
     busy = true;
-    tools.clear();
     schedule();
   });
   pi.on("agent_settled", (_event, ctx) => {
@@ -288,6 +287,7 @@ export default function companion(pi: ExtensionAPI) {
     context = ctx;
     tools.set(event.toolCallId, {
       id: event.toolCallId,
+      parentToolCallId: event.parentToolCallId,
       name: event.toolName,
       args: event.args,
       content: [],
@@ -299,6 +299,7 @@ export default function companion(pi: ExtensionAPI) {
     context = ctx;
     tools.set(event.toolCallId, {
       id: event.toolCallId,
+      parentToolCallId: event.parentToolCallId,
       name: event.toolName,
       args: event.args,
       content: blocks(record(event.partialResult).content),
@@ -310,6 +311,7 @@ export default function companion(pi: ExtensionAPI) {
     context = ctx;
     tools.set(event.toolCallId, {
       id: event.toolCallId,
+      parentToolCallId: event.parentToolCallId,
       name: event.toolName,
       args: tools.get(event.toolCallId)?.args,
       content: blocks(record(event.result).content),

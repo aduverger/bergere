@@ -126,7 +126,15 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
         revision: 1,
         sessionId: "session",
         sessionPath: "",
-        messages: [],
+        messages: [
+          {
+            id: "result",
+            role: "toolResult",
+            toolCallId: "tool",
+            toolName: "read",
+            content: [{ type: "text", text: "Full deferred output" }],
+          },
+        ],
         tools: [],
         dialogs: [],
         models: [],
@@ -159,7 +167,41 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
     browser.send(
       JSON.stringify({ type: "subscribe", version: 2, paneId: "pane" }),
     );
-    await until(() => events.find((e) => e.type === "snapshot"));
+    const initial = await until(() =>
+      events.find((e) => e.type === "snapshot"),
+    );
+    expect(JSON.stringify(initial)).not.toContain("Full deferred output");
+    const details = (generation: string, login = config.login) =>
+      new Promise<{ status: number; body: string; cache: string | undefined }>(
+        (resolve) => {
+          http.get(
+            `http://127.0.0.1:${port}/api/tool?paneId=pane&generation=${generation}&id=tool`,
+            {
+              headers: {
+                host: "host.example.ts.net",
+                "tailscale-user-login": login,
+              },
+            },
+            (res) => {
+              let body = "";
+              res.on("data", (chunk) => (body += chunk));
+              res.on("end", () =>
+                resolve({
+                  status: res.statusCode!,
+                  body,
+                  cache: res.headers["cache-control"],
+                }),
+              );
+            },
+          );
+        },
+      );
+    const detail = await details("g1");
+    expect(detail.status).toBe(200);
+    expect(detail.body).toContain("Full deferred output");
+    expect(detail.cache).toBe("no-store");
+    expect((await details("old")).status).toBe(409);
+    expect((await details("g1", "other@example.com")).status).toBe(403);
     terminalId = "replacement";
     browser.send(
       JSON.stringify({

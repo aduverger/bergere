@@ -529,3 +529,18 @@ header small {
     margin: 12vh auto;
   }
 }
+
+.activity {
+  margin: 12px 0 24px;
+  border-left: 2px solid #393632;
+  padding-left: 12px;
+}
+.activity > summary {
+  cursor: pointer;
+  color: #aaa094;
+  font-size: 12px;
+  padding: 12px 0;
+}
+.activity-body {
+  padding-top: 4px;
+}

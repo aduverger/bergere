@@ -1,8 +1,16 @@
-import { memo, useState } from "react";
-import { transcriptTools } from "../shared/transcript";
+import { createContext, useContext, useEffect, memo, useState } from "react";
+import { transcriptEntries } from "../shared/transcript";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { Block, Tool, Message } from "../shared/protocol";
+import {
+  ToolSchema,
+  type Block,
+  type Tool,
+  type Message,
+} from "../shared/protocol";
+import { Schema } from "effect";
+const ToolContext = createContext({ paneId: "", generation: "" });
+const decodeTool = Schema.decodeUnknownSync(ToolSchema);
 export const Content = memo(function Content({
   blocks,
 }: {
@@ -74,14 +82,70 @@ export function ToolRow({ tool }: { tool: Tool }) {
       </summary>
       {open && (
         <div className="tool-body">
-          <pre>{JSON.stringify(tool.args, null, 2)}</pre>
-          <Content blocks={tool.content} />
+          <ToolDetails tool={tool} />
         </div>
       )}
     </details>
   );
 }
 
+function ToolDetails({ tool }: { tool: Tool }) {
+  const { paneId, generation } = useContext(ToolContext);
+  const [loaded, setLoaded] = useState<Tool>();
+  const [error, setError] = useState("");
+  const completedContent = tool.status === "running" ? undefined : tool.content;
+  useEffect(() => {
+    if (!tool.detailsDeferred) return;
+    const controller = new AbortController();
+    setError("");
+    const query = new URLSearchParams({ paneId, generation, id: tool.id });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = () => {
+      void fetch(`/api/tool?${query}`, {
+        signal: controller.signal,
+        cache: "no-store",
+      })
+        .then(async (response) => {
+          if (!response.ok)
+            throw new Error(
+              response.status === 409
+                ? "Session changed. Reopen the tool."
+                : "Unable to load tool details. Close and reopen to retry.",
+            );
+          return decodeTool(await response.json());
+        })
+        .then((detail) => {
+          if (controller.signal.aborted) return;
+          setLoaded(detail);
+          if (tool.status === "running") timer = setTimeout(load, 1000);
+        })
+        .catch((e) => {
+          if (!controller.signal.aborted) setError(e.message);
+        });
+    };
+    load();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [
+    paneId,
+    generation,
+    tool.id,
+    tool.detailsDeferred,
+    tool.status,
+    completedContent,
+  ]);
+  const detail = tool.detailsDeferred ? loaded : tool;
+  if (error) return <p role="status">{error}</p>;
+  if (!detail) return <p role="status">Loading tool details…</p>;
+  return (
+    <>
+      <pre>{JSON.stringify(detail.args, null, 2)}</pre>
+      <Content blocks={detail.content} />
+    </>
+  );
+}
 const MemoToolRow = memo(
   ToolRow,
   (a, b) =>
@@ -89,46 +153,82 @@ const MemoToolRow = memo(
     a.tool.name === b.tool.name &&
     a.tool.status === b.tool.status &&
     a.tool.args === b.tool.args &&
-    a.tool.content === b.tool.content,
+    a.tool.content === b.tool.content &&
+    a.tool.detailsDeferred === b.tool.detailsDeferred,
 );
+
+function Activity({ tools, reasoning }: { tools: Tool[]; reasoning: Block[] }) {
+  const [open, setOpen] = useState(false);
+  const running = tools.filter((t) => t.status === "running");
+  const failed = tools.filter((t) => t.status === "error").length;
+  if (tools.length <= 1)
+    return (
+      <>
+        <Content blocks={reasoning} />
+        {tools.map((t) => (
+          <MemoToolRow key={t.id} tool={t} />
+        ))}
+      </>
+    );
+  return (
+    <details
+      className="activity"
+      onToggle={(e) => {
+        if (e.target === e.currentTarget) setOpen(e.currentTarget.open);
+      }}
+    >
+      <summary>
+        {tools.length} tool calls ·{" "}
+        {running.length ? `running ${running.at(-1)!.name}` : "completed"}
+        {failed ? ` · ${failed} failed` : ""}
+      </summary>
+      {open && (
+        <div className="activity-body">
+          <Content blocks={reasoning} />
+          {tools.map((t) => (
+            <MemoToolRow key={t.id} tool={t} />
+          ))}
+        </div>
+      )}
+    </details>
+  );
+}
+const MessageContent = memo(function MessageContent({
+  block,
+}: {
+  block: Block;
+}) {
+  return <Content blocks={[block]} />;
+});
 export const Transcript = memo(function Transcript({
   messages,
   live,
+  paneId,
+  generation,
 }: {
   messages: readonly Message[];
   live: readonly Tool[];
+  paneId: string;
+  generation: string;
 }) {
-  const tools = transcriptTools(messages, live);
-  const rendered = new Set<string>();
-  const results = new Set(
-    messages.flatMap((m) => (m.toolCallId ? [m.toolCallId] : [])),
-  );
+  const entries = transcriptEntries(messages, live);
   return (
-    <>
-      {messages.map((m) => {
-        if (
-          m.role === "toolResult" &&
-          m.toolCallId &&
-          rendered.has(m.toolCallId)
-        )
-          return null;
-        return (
-          <article key={m.id} className={`message ${m.role}`}>
-            <Content blocks={m.content} />
-            {m.content.map((p) => {
-              if (p.type !== "toolCall") return null;
-              rendered.add(p.id);
-              const tool = tools.get(p.id);
-              return tool ? <MemoToolRow key={p.id} tool={tool} /> : null;
-            })}
+    <ToolContext.Provider value={{ paneId, generation }}>
+      {entries.map((entry) =>
+        entry.kind === "activity" ? (
+          <Activity
+            key={entry.id}
+            tools={entry.tools}
+            reasoning={entry.reasoning}
+          />
+        ) : (
+          <article key={entry.id} className={`message ${entry.role}`}>
+            {entry.content.map((block, i) => (
+              <MessageContent key={i} block={block} />
+            ))}
           </article>
-        );
-      })}
-      {[...tools.values()]
-        .filter((t) => !rendered.has(t.id) && !results.has(t.id))
-        .map((t) => (
-          <MemoToolRow key={t.id} tool={t} />
-        ))}
-    </>
+        ),
+      )}
+    </ToolContext.Provider>
   );
 });

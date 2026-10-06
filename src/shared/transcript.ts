@@ -71,6 +71,7 @@ export function transcriptTools(
           args: p.arguments,
           content: [],
           status: "running",
+          detailsDeferred: m.detailsDeferred,
         });
     if (m.role === "toolResult" && m.toolCallId) {
       const previous = tools.get(m.toolCallId);
@@ -80,6 +81,7 @@ export function transcriptTools(
         args: previous?.args,
         content: m.content,
         status: m.isError ? "error" : "success",
+        detailsDeferred: m.detailsDeferred,
       });
     }
   }
@@ -87,4 +89,91 @@ export function transcriptTools(
     if (!tools.has(t.id) || tools.get(t.id)?.status === "running")
       tools.set(t.id, t);
   return tools;
+}
+
+export type TranscriptEntry =
+  | { kind: "message"; id: string; role: string; content: readonly Block[] }
+  | { kind: "activity"; id: string; tools: Tool[]; reasoning: Block[] };
+
+export function transcriptEntries(
+  messages: readonly Message[],
+  live: readonly Tool[],
+): TranscriptEntry[] {
+  const tools = transcriptTools(messages, live);
+  const children = new Map<string, Tool[]>();
+  for (const tool of tools.values()) {
+    const parent =
+      tool.parentToolCallId ??
+      (/\/\d+$/.test(tool.id)
+        ? tool.id.slice(0, tool.id.lastIndexOf("/"))
+        : "");
+    if (tools.has(parent))
+      children.set(parent, [...(children.get(parent) ?? []), tool]);
+  }
+  const entries: TranscriptEntry[] = [];
+  const seen = new Set<string>();
+  function activity(id: string) {
+    const last = entries.at(-1);
+    if (last?.kind === "activity") return last;
+    const entry: Extract<TranscriptEntry, { kind: "activity" }> = {
+      kind: "activity",
+      id,
+      tools: [],
+      reasoning: [],
+    };
+    entries.push(entry);
+    return entry;
+  }
+  function addTool(id: string) {
+    const tool = tools.get(id);
+    if (!tool || seen.has(id)) return;
+    seen.add(id);
+    activity(id).tools.push(tool);
+    for (const child of children.get(id) ?? []) addTool(child.id);
+  }
+  for (const m of messages) {
+    if (m.role === "toolResult" && m.toolCallId) {
+      addTool(m.toolCallId);
+      continue;
+    }
+    let segment: Extract<TranscriptEntry, { kind: "message" }> | undefined;
+    m.content.forEach((block, index) => {
+      if (block.type === "toolCall") {
+        addTool(block.id);
+        segment = undefined;
+      } else if (block.type === "thinking") {
+        activity(m.id).reasoning.push(block);
+        segment = undefined;
+      } else if (block.type !== "text" || block.text.trim()) {
+        if (segment) segment.content = [...segment.content, block];
+        else {
+          segment = {
+            kind: "message",
+            id: `${m.id}:${index}`,
+            role: m.role,
+            content: [block],
+          };
+          entries.push(segment);
+        }
+      }
+    });
+  }
+  // Execution events without a persisted call belong before the current turn's final response.
+  const orphaned = [...tools.values()].filter((t) => !seen.has(t.id));
+  if (orphaned.length) {
+    let index = entries.length;
+    while (
+      index > 0 &&
+      entries[index - 1].kind === "message" &&
+      (entries[index - 1] as { role?: string }).role === "assistant"
+    )
+      index--;
+    entries.splice(index, 0, {
+      kind: "activity",
+      id: orphaned[0].id,
+      tools: orphaned,
+      reasoning: [],
+    });
+  }
+  return entries;
 }
