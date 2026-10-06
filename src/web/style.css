@@ -123,7 +123,7 @@ img {
   gap: 12px;
   padding: 4px 8px 22px;
 }
-.brand > .pi-logo {
+.brand > .bergere-logo {
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -344,7 +344,7 @@ header small {
   color: #948b7f;
   max-width: 440px;
 }
-.empty > .pi-logo {
+.empty > .bergere-logo {
   width: 100px;
   height: 100px;
   border-radius: 0;
