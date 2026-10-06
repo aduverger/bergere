@@ -7,6 +7,7 @@ const program = Effect.scoped(
       Effect.tryPromise(() => startGateway(config())),
       (close) => Effect.promise(close),
     );
+    process.send?.({ type: "ready" });
     yield* Effect.callback<void>((resume) => {
       const stop = () => resume(Effect.void);
       process.once("SIGINT", stop);

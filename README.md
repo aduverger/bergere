@@ -45,6 +45,53 @@ Default bridge: `~/.local/state/pi-mobile-herdr/bridge.sock`. Its directory must
 
 `pnpm dev` runs Vite on loopback and proxies `/ws` to port 8787. For that workflow start `PMH_LOCAL=1 PMH_ORIGIN=http://127.0.0.1:5173 pnpm gateway`, then open the Vite URL. Production always serves built assets and WebSocket from one origin.
 
+## Run the server on EC2
+
+Use the same Linux user as Herdr/Pi. Install dependencies, build, and install the companion once:
+
+```sh
+pnpm install --frozen-lockfile
+make build
+pi install "$PWD"
+```
+
+Run `/reload` in each idle Pi pane. Then:
+
+```sh
+make start    # background gateway + Tailscale Serve on HTTPS 3504
+make status   # gateway PID and phone URL
+make logs     # follow gateway logs; Ctrl+C only stops following
+make stop     # disable Serve on 3504 and gracefully stop the gateway
+```
+
+`make start` runs `tailscale whoami --json` and derives:
+
+- `PMH_ORIGIN`: `https://<Node.Name without trailing dot>:3504`
+- `PMH_TAILSCALE_LOGIN`: `UserProfile.LoginName`
+
+After the gateway is ready it configures:
+
+```sh
+tailscale serve --bg --yes --https=3504 http://127.0.0.1:8787
+```
+
+Open the printed HTTPS URL on your phone with Tailscale connected. Port **3504** is dedicated to this app. `make stop` disables that port only; it does not reset other Serve configuration or stop Herdr/Pi. The local backend remains on **127.0.0.1:8787**. An explicit `PMH_PORT` changes the backend port and Serve target together; HTTPS remains 3504.
+
+Tailscale must be connected and this user must have permission to manage Serve. If it requires additional permission or HTTPS setup, startup fails with guidance; the helper does not invoke sudo or change tailnet policy. Restrict destination TCP **3504** in your tailnet policy to your identity, accounting for existing broad allow rules. Do not open public EC2 application ports.
+
+Explicit `PMH_ORIGIN` and `PMH_TAILSCALE_LOGIN` override discovery; the origin must still use HTTPS port 3504. For a tagged node without a user profile, provide the exact phone user's login explicitly. Missing identity fails closed. The full whoami response is never saved or logged.
+
+The gateway runs detached from your shell. Its PID record and append-only log live in gitignored `.run/`. Repeating `make start` reuses the tracked gateway and reapplies Serve. `make stop` checks the process start time and command before signaling, so stale PID records cannot stop an unrelated process. After changing configuration or rebuilding, use `make stop` then `make start`. This helper does not restart the gateway on crashes or reboot; use the [systemd setup](docs/DEPLOYMENT.md) for that, instead of running both managers.
+
+For local-only background operation, with no Tailscale commands:
+
+```sh
+PMH_LOCAL=1 make start
+make stop
+```
+
+`pnpm start` remains the foreground command with explicit environment configuration.
+
 ## Behavior
 
 - Desktop workspace sidebar, mobile session drawer, search and activity status.
