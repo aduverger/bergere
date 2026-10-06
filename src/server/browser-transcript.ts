@@ -10,6 +10,7 @@ function summaryArgs(value: unknown): Record<string, string> {
 export function browserMessage(message: Message): Message {
 	return {
 		...message,
+		nestedTools: message.nestedTools?.map(browserTool),
 		detailsDeferred: true,
 		content:
 			message.role === "toolResult"

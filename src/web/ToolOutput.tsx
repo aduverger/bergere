@@ -54,12 +54,43 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 	const args = record(tool.args);
 	const language = fileLanguage(typeof args.path === "string" ? args.path : "");
 	if (
-		!["read", "write", "edit", "bash"].includes(tool.name) ||
+		!["read", "write", "edit", "bash", "codemode"].includes(tool.name) ||
 		(tool.name === "write" && typeof args.content !== "string") ||
 		(tool.name === "bash" && typeof args.command !== "string") ||
 		tool.content.some((block) => block.type !== "text" && block.type !== "image")
 	)
 		return children;
+	if (tool.name === "codemode")
+		return (
+			<>
+				<details className="codemode-script">
+					<summary>Script</summary>
+					<Source
+						text={
+							typeof args.code === "string"
+								? args.code
+								: typeof tool.args === "string"
+									? tool.args
+									: JSON.stringify(tool.args ?? {}, null, 2)
+						}
+						language="javascript"
+						label="Script"
+						wrap
+					/>
+				</details>
+				{tool.content.length > 0 && <div className="tool-section-label">Script output</div>}
+				{tool.content.map((block, index) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: Script output blocks retain their order.
+					<div key={index}>
+						{block.type === "text" ? (
+							<Source text={block.text} label="Script output" />
+						) : block.type === "image" ? (
+							<img src={`data:${block.mimeType};base64,${block.data}`} alt="Script output" />
+						) : null}
+					</div>
+				))}
+			</>
+		);
 	const output =
 		(tool.name === "write" || tool.name === "edit") && tool.status === "success"
 			? []

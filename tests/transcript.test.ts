@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { browserMessage, browserTool } from "../src/server/browser-transcript";
 import type { Message, Tool } from "../src/shared/protocol";
-import { transcriptEntries } from "../src/shared/transcript";
+import { message, transcriptEntries, transcriptTools } from "../src/shared/transcript";
 
 const call = (id: string, name = "read"): Message => ({
 	id,
@@ -30,8 +30,10 @@ it("keeps standalone and nested calls before the final answer in invocation orde
 	expect(rows[0]?.kind === "activity" && rows[0].tools.map((t) => t.id)).toEqual([
 		"first",
 		"parent",
-		"child",
 		"last",
+	]);
+	expect(rows[0]?.kind === "activity" && rows[0].tools[1]?.children.map((t) => t.id)).toEqual([
+		"child",
 	]);
 	expect(rows[1]?.id).toBe("final:0");
 });
@@ -172,4 +174,51 @@ it("shows reasoning when text arrives after an empty streaming block", () => {
 		{ kind: "message", id: "streaming:0", role: "assistant", content: populated.content },
 	]);
 	expect(transcriptEntries([empty], [])).toEqual([]);
+});
+
+it("restores Pi nested summaries and prefers captured full results", () => {
+	const saved = message(
+		{
+			role: "toolResult",
+			toolCallId: "parent",
+			toolName: "codemode",
+			content: [],
+			nestedCalls: {
+				complete: false,
+				calls: [
+					{ id: "parent/1", name: "read", arguments: { path: "x.py" }, status: "ok" },
+					{ id: "parent/2", name: "bash", status: "unfinished" },
+					{
+						id: "parent/3",
+						name: "edit",
+						arguments: { path: "x.py" },
+						status: "error",
+						error: "Not found",
+					},
+				],
+			},
+		},
+		"result",
+	);
+	const messages = [call("parent", "codemode"), saved, text("final")];
+	const restored = transcriptTools(messages, []);
+	expect(restored.get("parent/1")).toMatchObject({
+		outputUnavailable: true,
+		status: "success",
+		args: { path: "x.py" },
+	});
+	expect(restored.get("parent/2")?.status).toBe("unknown");
+	expect(restored.get("parent/3")?.content).toEqual([{ type: "text", text: "Not found" }]);
+	const live = {
+		...child,
+		id: "parent/1",
+		content: [{ type: "text" as const, text: "original file" }],
+	};
+	const rows = transcriptEntries(messages, [live]);
+	expect(rows[0]?.kind === "activity" && rows[0].tools[0]).toMatchObject({
+		traceIncomplete: true,
+		children: [{ id: "parent/1", content: live.content }, { id: "parent/2" }, { id: "parent/3" }],
+	});
+	expect(transcriptTools(messages, [live]).get("parent/1")?.outputUnavailable).toBeUndefined();
+	expect(JSON.stringify(browserMessage(saved))).not.toContain("Not found");
 });

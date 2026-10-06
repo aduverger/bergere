@@ -3,7 +3,7 @@ import { createContext, lazy, memo, Suspense, useContext, useEffect, useState } 
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type Block, type Message, type Tool, ToolSchema } from "../shared/protocol";
-import { hasVisibleContent, transcriptEntries } from "../shared/transcript";
+import { hasVisibleContent, type TranscriptTool, transcriptEntries } from "../shared/transcript";
 
 const ToolOutput = lazy(() => import("./ToolOutput"));
 const ToolContext = createContext({ paneId: "", generation: "" });
@@ -39,7 +39,7 @@ function Reasoning({ text }: { text: string }) {
 		</details>
 	);
 }
-function ToolRow({ tool }: { tool: Tool }) {
+function ToolRow({ tool }: { tool: TranscriptTool }) {
 	const [open, setOpen] = useState(false);
 	const args = tool.args as Record<string, unknown> | undefined;
 	const label =
@@ -49,17 +49,34 @@ function ToolRow({ tool }: { tool: Tool }) {
 				? args.command
 				: "";
 	return (
-		<details className={`tool ${tool.status}`} onToggle={(e) => setOpen(e.currentTarget.open)}>
+		<details
+			className={`tool ${tool.status}`}
+			onToggle={(e) => {
+				if (e.target === e.currentTarget) setOpen(e.currentTarget.open);
+			}}
+		>
 			<summary>
 				<span className="tool-icon">
-					{tool.status === "running" ? "◌" : tool.status === "error" ? "!" : "✓"}
+					{tool.status === "running"
+						? "◌"
+						: tool.status === "error"
+							? "!"
+							: tool.status === "unknown"
+								? "?"
+								: "✓"}
 				</span>
 				<strong>{tool.name}</strong>
-				<span className="tool-label">{label}</span>
+				<span className="tool-label">
+					{tool.children.length ? `${tool.children.length} calls` : label}
+				</span>
 				<span>›</span>
 			</summary>
 			{open && (
 				<div className="tool-body">
+					{tool.traceIncomplete && (
+						<p className="tool-section-label">Pi saved an incomplete child-call trace.</p>
+					)}
+					{tool.children.length > 0 && <Activity tools={tool.children} />}
 					<ToolDetails tool={tool} />
 				</div>
 			)}
@@ -113,6 +130,12 @@ function ToolDetails({ tool }: { tool: Tool }) {
 	if (!detail) return <p role="status">Loading tool details…</p>;
 	return (
 		<Suspense fallback={<p role="status">Formatting tool details…</p>}>
+			{detail.outputUnavailable && (
+				<p className="tool-section-label">
+					Pi did not save this child call’s output.{" "}
+					{detail.args === undefined ? "Arguments are also unavailable." : ""}
+				</p>
+			)}
 			<ToolOutput tool={detail}>
 				<pre>{JSON.stringify(detail.args, null, 2)}</pre>
 				<Content blocks={detail.content} />
@@ -120,18 +143,26 @@ function ToolDetails({ tool }: { tool: Tool }) {
 		</Suspense>
 	);
 }
-const MemoToolRow = memo(
-	ToolRow,
-	(a, b) =>
-		a.tool.id === b.tool.id &&
-		a.tool.name === b.tool.name &&
-		a.tool.status === b.tool.status &&
-		a.tool.args === b.tool.args &&
-		a.tool.content === b.tool.content &&
-		a.tool.detailsDeferred === b.tool.detailsDeferred,
-);
+function sameTool(a: TranscriptTool, b: TranscriptTool): boolean {
+	return (
+		a.id === b.id &&
+		a.name === b.name &&
+		a.status === b.status &&
+		a.args === b.args &&
+		a.content === b.content &&
+		a.detailsDeferred === b.detailsDeferred &&
+		a.outputUnavailable === b.outputUnavailable &&
+		a.traceIncomplete === b.traceIncomplete &&
+		a.children.length === b.children.length &&
+		a.children.every((child, index) => {
+			const other = b.children[index];
+			return other !== undefined && sameTool(child, other);
+		})
+	);
+}
+const MemoToolRow = memo(ToolRow, (a, b) => sameTool(a.tool, b.tool));
 
-function Activity({ tools }: { tools: Tool[] }) {
+function Activity({ tools }: { tools: TranscriptTool[] }) {
 	const [open, setOpen] = useState(false);
 	const running = tools.filter((t) => t.status === "running");
 	const latestRunning = running.at(-1);

@@ -19,7 +19,19 @@ const BlockSchema = Schema.Union([
 	}),
 	ImageSchema,
 ]);
+export const ToolSchema = Schema.Struct({
+	parentToolCallId: Schema.optional(text),
+	detailsDeferred: Schema.optional(Schema.Boolean),
+	outputUnavailable: Schema.optional(Schema.Boolean),
+	id: text,
+	name: text,
+	args: Schema.Unknown,
+	content: Schema.Array(BlockSchema),
+	status: Schema.Literals(["running", "success", "error", "unknown"]),
+});
 const MessageSchema = Schema.Struct({
+	nestedTools: Schema.optional(Schema.Array(ToolSchema)),
+	nestedCallsComplete: Schema.optional(Schema.Boolean),
 	id: text,
 	role: text,
 	content: Schema.Array(BlockSchema),
@@ -27,15 +39,6 @@ const MessageSchema = Schema.Struct({
 	toolCallId: Schema.optional(text),
 	toolName: Schema.optional(text),
 	isError: Schema.optional(Schema.Boolean),
-});
-export const ToolSchema = Schema.Struct({
-	parentToolCallId: Schema.optional(text),
-	detailsDeferred: Schema.optional(Schema.Boolean),
-	id: text,
-	name: text,
-	args: Schema.Unknown,
-	content: Schema.Array(BlockSchema),
-	status: Schema.Literals(["running", "success", "error"]),
 });
 const DialogSchema = Schema.Struct({
 	id: text,

@@ -117,8 +117,22 @@ describe("tool presentation", () => {
 		expect(html).not.toContain("timeout");
 	});
 	it("preserves generic rendering for codemode and unexpected argument shapes", () => {
-		expect(render("codemode", {}, "output")).toBe("Generic fallback");
+		expect(render("unknown-tool", {}, "output")).toBe("Generic fallback");
 		expect(render("write", {}, "output")).toBe("Generic fallback");
 		expect(render("edit", { edits: [{ unexpected: "value" }] }, "error")).toContain("unexpected");
 	});
+});
+
+it("renders codemode script without JSON escaping and preserves literal output", () => {
+	const html = render(
+		"codemode",
+		{ code: 'text(await tools.read({path:"test.py"}));\n' },
+		"# not a heading\n    indented\n<script>unsafe</script>",
+	);
+	expect(html).toContain("hljs-keyword");
+	expect(html).not.toContain("&quot;code&quot;");
+	expect(html).not.toContain("<h1>");
+	expect(html).not.toContain("<script>");
+	expect(html).toContain("# not a heading\n    indented");
+	expect(html).toContain('class="codemode-script"');
 });

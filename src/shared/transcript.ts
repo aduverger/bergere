@@ -22,6 +22,25 @@ export function blocks(value: unknown): Block[] {
 		return [];
 	});
 }
+function nestedTools(value: unknown): Tool[] {
+	const calls = record(value).calls;
+	if (!Array.isArray(calls)) return [];
+	return calls.flatMap((value): Tool[] => {
+		const call = record(value);
+		if (typeof call.id !== "string" || typeof call.name !== "string") return [];
+		return [
+			{
+				id: call.id,
+				parentToolCallId: call.id.slice(0, call.id.lastIndexOf("/")),
+				name: call.name,
+				args: call.arguments,
+				content: typeof call.error === "string" ? [{ type: "text", text: call.error }] : [],
+				status: call.status === "ok" ? "success" : call.status === "error" ? "error" : "unknown",
+				outputUnavailable: true,
+			},
+		];
+	});
+}
 export function message(value: unknown, id: string): Message {
 	const m = record(value);
 	const content = blocks(m.content);
@@ -29,6 +48,12 @@ export function message(value: unknown, id: string): Message {
 	return {
 		id,
 		role: String(m.role ?? "system"),
+		...(m.nestedCalls
+			? {
+					nestedTools: nestedTools(m.nestedCalls),
+					nestedCallsComplete: record(m.nestedCalls).complete === true,
+				}
+			: {}),
 		content,
 		...(typeof m.toolCallId === "string" ? { toolCallId: m.toolCallId } : {}),
 		...(typeof m.toolName === "string" ? { toolName: m.toolName } : {}),
@@ -53,6 +78,7 @@ export function transcriptTools(
 ): Map<string, Tool> {
 	const tools = new Map<string, Tool>();
 	for (const m of messages) {
+		for (const tool of m.nestedTools ?? []) tools.set(tool.id, tool);
 		for (const p of m.content)
 			if (p.type === "toolCall")
 				tools.set(p.id, {
@@ -76,7 +102,12 @@ export function transcriptTools(
 		}
 	}
 	for (const t of live)
-		if (!tools.has(t.id) || tools.get(t.id)?.status === "running") tools.set(t.id, t);
+		if (
+			!tools.has(t.id) ||
+			tools.get(t.id)?.status === "running" ||
+			tools.get(t.id)?.outputUnavailable
+		)
+			tools.set(t.id, t);
 	return tools;
 }
 
@@ -86,15 +117,20 @@ export function hasVisibleContent(block: Block): boolean {
 	return true;
 }
 
+export type TranscriptTool = Tool & { children: TranscriptTool[]; traceIncomplete?: boolean };
+
 export type TranscriptEntry =
 	| { kind: "message"; id: string; role: string; content: readonly Block[] }
-	| { kind: "activity"; id: string; tools: Tool[] };
+	| { kind: "activity"; id: string; tools: TranscriptTool[] };
 
 export function transcriptEntries(
 	messages: readonly Message[],
 	live: readonly Tool[],
 ): TranscriptEntry[] {
 	const tools = transcriptTools(messages, live);
+	const incompleteTraces = new Set(
+		messages.filter((m) => m.nestedCallsComplete === false).map((m) => m.toolCallId),
+	);
 	const children = new Map<string, Tool[]>();
 	for (const tool of tools.values()) {
 		const parent =
@@ -115,12 +151,22 @@ export function transcriptEntries(
 		entries.push(entry);
 		return entry;
 	}
-	function addTool(id: string) {
+	function buildTool(id: string): TranscriptTool | undefined {
 		const tool = tools.get(id);
 		if (!tool || seen.has(id)) return;
 		seen.add(id);
-		activity(id).tools.push(tool);
-		for (const child of children.get(id) ?? []) addTool(child.id);
+		return {
+			...tool,
+			traceIncomplete: incompleteTraces.has(id),
+			children: (children.get(id) ?? []).flatMap((child) => {
+				const nested = buildTool(child.id);
+				return nested ? [nested] : [];
+			}),
+		};
+	}
+	function addTool(id: string) {
+		const tool = buildTool(id);
+		if (tool) activity(id).tools.push(tool);
 	}
 	for (const m of messages) {
 		if (m.role === "toolResult" && m.toolCallId) {
@@ -160,7 +206,10 @@ export function transcriptEntries(
 		entries.splice(index, 0, {
 			kind: "activity",
 			id: firstOrphan.id,
-			tools: orphaned,
+			tools: orphaned.flatMap((tool) => {
+				const entry = buildTool(tool.id);
+				return entry ? [entry] : [];
+			}),
 		});
 	}
 	return entries;
