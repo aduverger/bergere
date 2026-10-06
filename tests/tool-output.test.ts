@@ -136,3 +136,30 @@ it("renders codemode script without JSON escaping and preserves literal output",
 	expect(html).toContain("# not a heading\n    indented");
 	expect(html).toContain('class="codemode-script"');
 });
+
+it("hides codemode completion metadata without dropping output or failure details", () => {
+	const header = "Script completed\nWall time 0.1 seconds\nOutput:\n";
+	const empty = render("codemode", { code: "" }, header);
+	expect(empty).not.toContain("Script completed");
+	expect(empty).not.toContain('aria-label="Output"');
+	for (const code of ['text(await tools.read({path:"test.py"}));', "text(result);"]) {
+		const html = renderToStaticMarkup(
+			createElement(ToolOutput, {
+				tool: {
+					id: "t",
+					name: "codemode",
+					args: { code },
+					status: "success",
+					content: [
+						{ type: "text", text: header },
+						{ type: "text", text: "actual output" },
+					],
+				},
+			}),
+		);
+		expect(html).not.toContain("Script completed");
+		expect(html).toContain(code.includes("tools.read") ? "test.py" : "actual output");
+	}
+	expect(render("codemode", {}, "Script failed\nTimeout", "error")).toContain("Timeout");
+	expect(render("codemode", {}, `${header}actual output`)).toContain("actual output");
+});

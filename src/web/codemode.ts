@@ -66,15 +66,20 @@ function printedCall(value: unknown): { name: string; args: Record<string, unkno
 	return { name, args: record(literal(call.arguments[0])) };
 }
 
+export function isCodemodeCompletionHeader(block: Tool["content"][number] | undefined): boolean {
+	return (
+		block?.type === "text" &&
+		/^Script completed\nWall time \d+(?:\.\d+)? seconds\nOutput:\n$/.test(block.text)
+	);
+}
+
 export function codemodeOutputs(tool: Tool): Tool[] | undefined {
 	const code = typeof tool.args === "string" ? tool.args : record(tool.args).code;
-	const header = tool.content[0];
 	if (
 		tool.status !== "success" ||
 		typeof code !== "string" ||
 		code.length > 100000 ||
-		header?.type !== "text" ||
-		!/^Script completed\nWall time \d+(?:\.\d+)? seconds\nOutput:\n$/.test(header.text)
+		!isCodemodeCompletionHeader(tool.content[0])
 	)
 		return;
 	try {

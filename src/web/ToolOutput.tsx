@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { memo, type ReactNode, useState } from "react";
 import type { Tool } from "../shared/protocol";
 import { record } from "../shared/transcript";
-import { codemodeOutputs } from "./codemode";
+import { codemodeOutputs, isCodemodeCompletionHeader } from "./codemode";
 import { EditDiff } from "./EditDiff";
 import { fileLanguage, highlightSource } from "./syntax";
 
@@ -86,6 +86,11 @@ function MappedTool({ tool }: { tool: Tool }) {
 function CodemodeOutput({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: boolean }) {
 	const args = record(tool.args);
 	const mapped = hasNestedCalls ? undefined : codemodeOutputs(tool);
+	const output = mapped
+		? []
+		: tool.status === "success" && isCodemodeCompletionHeader(tool.content[0])
+			? tool.content.slice(1)
+			: tool.content;
 	return (
 		<>
 			{mapped && (
@@ -113,11 +118,8 @@ function CodemodeOutput({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: 
 					wrap
 				/>
 			</details>
-			{mapped && (
-				<div className="tool-section-label">Outputs matched to sequential calls in the script.</div>
-			)}
-			{!mapped && tool.content.length > 0 && <div className="tool-section-label">Output</div>}
-			{(mapped ? tool.content.slice(0, 1) : tool.content).map((block, index) => (
+			{output.length > 0 && <div className="tool-section-label">Output</div>}
+			{output.map((block, index) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: Script output blocks retain their order.
 				<div key={index}>
 					{block.type === "text" ? (
