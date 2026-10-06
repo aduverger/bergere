@@ -21,7 +21,8 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 				{ type: "text", text: `Step ${i}: checking the workspace.` },
 				{
 					type: "thinking",
-					thinking: "Inspect the workspace before making changes.",
+					thinking:
+						i === 0 ? "" : i === 1 ? " \n\t " : "Inspect the workspace before making changes.",
 				},
 				{
 					type: "toolCall",
@@ -166,7 +167,7 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 
 		await expect(page.locator(".tool-body")).toHaveCount(0);
 		await expect(page.locator(".thinking p")).toHaveCount(0);
-		await expect(page.locator("article.message .thinking")).toHaveCount(290);
+		await expect(page.locator("article.message .thinking")).toHaveCount(288);
 		await expect(page.locator("details.activity > summary")).toHaveText("6 tool calls · completed");
 		await expect(page.locator(".transcript > details.tool")).toHaveCount(293);
 		const lastStep = page.locator("article.message").last();
@@ -249,7 +250,10 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 				{
 					id: "last",
 					role: "assistant",
-					content: [{ type: "text" as const, text: "Incremental response" }],
+					content: [
+						{ type: "thinking" as const, thinking: "" },
+						{ type: "text" as const, text: "Incremental response" },
+					],
 				},
 			],
 		};
@@ -258,7 +262,7 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 			messages: next.messages.map(browserMessage),
 			tools: next.tools.map(browserTool),
 		});
-		expect(JSON.stringify(patch).length).toBeLessThan(300);
+		expect(JSON.stringify(patch).length).toBeLessThan(400);
 		for (const ws of wss.clients)
 			ws.send(JSON.stringify({ type: "patch", version: 2, paneId: "p", patch }));
 		await expect(page.getByText("Incremental response", { exact: true })).toBeVisible();
@@ -274,6 +278,31 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 		expect(order.indexOf("nested.ts")).toBeLessThan(order.indexOf("Incremental response"));
 		await page.locator("details.tool summary").filter({ hasText: "nested.ts" }).click();
 		await expect(page.locator(".tool-body")).toHaveCount(0);
+		const finalMessage = page.locator("article.message").last();
+		await expect(finalMessage.locator(".thinking")).toHaveCount(0);
+		const withReasoning = {
+			...next,
+			revision: 3,
+			messages: [
+				...messages,
+				{
+					id: "last",
+					role: "assistant",
+					content: [
+						{ type: "thinking" as const, thinking: "Reasoning arrived after the placeholder." },
+						{ type: "text" as const, text: "Incremental response" },
+					],
+				},
+			],
+		};
+		const reasoningPatch = diffSnapshot(next, withReasoning);
+		for (const ws of wss.clients)
+			ws.send(JSON.stringify({ type: "patch", version: 2, paneId: "p", patch: reasoningPatch }));
+		await expect(finalMessage.locator(".thinking")).toHaveCount(1);
+		await finalMessage.locator(".thinking > summary").click();
+		await expect(finalMessage.locator(".thinking p")).toHaveText(
+			"Reasoning arrived after the placeholder.",
+		);
 		console.log(
 			JSON.stringify({
 				browserSnapshotBytes: Buffer.byteLength(JSON.stringify(browserState)),

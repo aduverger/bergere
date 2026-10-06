@@ -80,6 +80,12 @@ export function transcriptTools(
 	return tools;
 }
 
+export function hasVisibleContent(block: Block): boolean {
+	if (block.type === "thinking") return block.thinking.trim().length > 0;
+	if (block.type === "text") return block.text.trim().length > 0;
+	return true;
+}
+
 export type TranscriptEntry =
 	| { kind: "message"; id: string; role: string; content: readonly Block[] }
 	| { kind: "activity"; id: string; tools: Tool[] };
@@ -126,7 +132,7 @@ export function transcriptEntries(
 			if (block.type === "toolCall") {
 				addTool(block.id);
 				segment = undefined;
-			} else if (block.type !== "text" || block.text.trim()) {
+			} else if (hasVisibleContent(block)) {
 				if (segment) segment.content = [...segment.content, block];
 				else {
 					segment = {

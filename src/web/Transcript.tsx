@@ -3,7 +3,7 @@ import { createContext, memo, useContext, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type Block, type Message, type Tool, ToolSchema } from "../shared/protocol";
-import { transcriptEntries } from "../shared/transcript";
+import { hasVisibleContent, transcriptEntries } from "../shared/transcript";
 
 const ToolContext = createContext({ paneId: "", generation: "" });
 const decodeTool = Schema.decodeUnknownSync(ToolSchema);
@@ -11,7 +11,7 @@ const Content = memo(function Content({ blocks }: { blocks: readonly Block[] }) 
 	return (
 		<>
 			{blocks.map((p, i) =>
-				p.type === "text" ? (
+				!hasVisibleContent(p) ? null : p.type === "text" ? (
 					// biome-ignore lint/suspicious/noArrayIndexKey: Block positions stay fixed while their text streams.
 					<Markdown key={i} remarkPlugins={[remarkGfm]}>
 						{p.text}

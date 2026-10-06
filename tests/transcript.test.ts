@@ -138,3 +138,38 @@ it("keeps reasoning beside its message text and between the original tool calls"
 		["second"],
 	]);
 });
+
+it("omits blank reasoning without empty messages or splitting consecutive tool calls", () => {
+	const empty: Message = {
+		id: "thinking",
+		role: "assistant",
+		content: [
+			{ type: "thinking", thinking: "" },
+			{ type: "thinking", thinking: " \n\t " },
+		],
+	};
+	const rows = transcriptEntries([call("first"), empty, call("second"), text("answer")], []);
+	expect(rows.map((row) => row.kind)).toEqual(["activity", "message"]);
+	expect(rows[0]?.kind === "activity" && rows[0].tools.map((tool) => tool.id)).toEqual([
+		"first",
+		"second",
+	]);
+	expect(empty.content).toHaveLength(2);
+});
+
+it("shows reasoning when text arrives after an empty streaming block", () => {
+	const empty: Message = {
+		id: "streaming",
+		role: "assistant",
+		content: [{ type: "thinking", thinking: "" }],
+	};
+	expect(transcriptEntries([empty], [])).toEqual([]);
+	const populated: Message = {
+		...empty,
+		content: [{ type: "thinking", thinking: "  Actual reasoning\n" }],
+	};
+	expect(transcriptEntries([populated], [])).toEqual([
+		{ kind: "message", id: "streaming:0", role: "assistant", content: populated.content },
+	]);
+	expect(transcriptEntries([empty], [])).toEqual([]);
+});
