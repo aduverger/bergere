@@ -6,8 +6,6 @@ A private, mobile-first web client for **existing Pi processes inside Herdr**. R
 
 Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable projections and never launches Pi or writes session logs.
 
-Repository: [aduverger/bergere](https://github.com/aduverger/bergere). The package name is `bergere`.
-
 ## Renamed from pi-mobile-herdr
 
 Existing checkout directories and Pi extension installation paths can stay as they are. Update your remote with:
@@ -136,13 +134,6 @@ The package entry point is `companion.js`, which imports the built extension by 
 - Collapsed tool output and reasoning render only when opened. Composer edits do not rerender the transcript. Hashed frontend assets use private immutable caching; HTML and transcripts are not cached offline.
 - Streaming updates send changed message/tool suffixes, preserving unchanged history. Updates coalesce over 50 ms. Slow browser clients reconnect for fresh state. Transport frames are limited to 32 MiB; browser submissions to 24 MiB encoded, individual images to 10 MiB. No transcripts or command contents are logged by the gateway.
 
-## Validation and remaining deployment checks
-
-`pnpm test` covers schema validation, revision gaps, command deduplication, dialog races/timeouts, tool reconciliation, HTTP/WebSocket access and pane reuse. `pnpm test:browser` runs desktop Chromium, mobile Chromium and mobile WebKit against isolated real Pi/Herdr processes, including terminal/browser prompts, dialogs, tools, image input, model controls, reload, session change, abort and restart while streaming. PID assertions verify process ownership stays with Herdr.
-
-Mobile WebKit emulation is not a physical iPhone test. Real Safari/home-screen keyboard placement, image picker, phone sleep/foreground recovery and actual Tailscale identity/header isolation remain device/deployment acceptance checks. See [deployment steps](docs/DEPLOYMENT.md). No EC2 changes or Tailscale sharing were made during local implementation.
-
-Session creation, archived history, terminal emulation, files, multiple hosts and push notifications are outside this version.
 
 ## Source layout and references
 
