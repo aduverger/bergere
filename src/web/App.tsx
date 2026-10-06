@@ -1,3 +1,4 @@
+import { ArrowDown, Menu, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
 	applyPatch,
@@ -12,11 +13,9 @@ import { Connection } from "./client";
 import { DialogCard } from "./DialogCard";
 import { Transcript } from "./Transcript";
 
-function groupSessions(sessions: readonly Session[], query: string) {
+function groupSessions(sessions: readonly Session[]) {
 	const groups = new Map<string, Session[]>();
-	for (const s of sessions)
-		if (`${s.title} ${s.cwd} ${s.workspace}`.toLowerCase().includes(query.toLowerCase()))
-			groups.set(s.workspaceId, [...(groups.get(s.workspaceId) ?? []), s]);
+	for (const s of sessions) groups.set(s.workspaceId, [...(groups.get(s.workspaceId) ?? []), s]);
 	return groups;
 }
 export function App() {
@@ -28,7 +27,6 @@ export function App() {
 	const [ready, setReady] = useState(false);
 	const [notice, setNotice] = useState("");
 	const [uncertain, setUncertain] = useState(false);
-	const [query, setQuery] = useState("");
 	const [drawer, setDrawer] = useState(false);
 	const [drafts, setDrafts] = useState<Record<string, string>>({});
 	const [images, setImages] = useState<Record<string, Attachment[]>>({});
@@ -227,7 +225,7 @@ export function App() {
 	const attachments = images[selected] ?? [];
 	const disabled = !online || !ready || pending;
 	const promptDisabled = disabled || !!snapshot?.dialogs.length || !!snapshot?.terminalOnly;
-	const groups = groupSessions(sessions, query);
+	const groups = groupSessions(sessions);
 	return (
 		<div className="app">
 			{drawer && (
@@ -238,26 +236,19 @@ export function App() {
 					onClick={() => setDrawer(false)}
 				/>
 			)}
-			<aside className={drawer ? "sidebar open" : "sidebar"}>
+			<aside id="sessions" aria-label="Sessions" className={drawer ? "sidebar open" : "sidebar"}>
 				<div className="brand">
 					<img src="/icon.svg" alt="" className="bergere-logo" />
 					<strong>Bergère</strong>
 					<button
 						type="button"
-						className="mobile-only subtle"
+						className="mobile-only subtle icon-button"
 						aria-label="Close sessions"
 						onClick={() => setDrawer(false)}
 					>
-						×
+						<X aria-hidden="true" />
 					</button>
 				</div>
-				<input
-					className="search"
-					aria-label="Search sessions"
-					placeholder="Search sessions"
-					value={query}
-					onChange={(e) => setQuery(e.target.value)}
-				/>
 				<nav>
 					{[...groups].map(([id, list]) => (
 						<section key={id}>
@@ -282,25 +273,19 @@ export function App() {
 				<footer>
 					<span className={online ? "online" : "offline"}>●</span>{" "}
 					{online ? "Connected" : "Reconnecting…"}
-					<span className="muted">Existing Herdr sessions</span>
 				</footer>
 			</aside>
-			<main>
-				<header>
-					<button
-						type="button"
-						className="mobile-only subtle"
-						aria-label="Open sessions"
-						onClick={() => setDrawer(true)}
-					>
-						☰
-					</button>
-					<div>
-						<strong>{session?.title ?? "Bergère"}</strong>
-						<small>{session?.cwd ?? "Your running sessions, wherever you are"}</small>
-					</div>
-					<span className="status">{snapshot?.busy ? "Working" : ready ? "Ready" : ""}</span>
-				</header>
+			<main aria-label="Conversation" aria-busy={!online || !ready || !!snapshot?.busy}>
+				<button
+					type="button"
+					className="mobile-only icon-button menu-button"
+					aria-label="Open sessions"
+					aria-expanded={drawer}
+					aria-controls="sessions"
+					onClick={() => setDrawer(true)}
+				>
+					<Menu aria-hidden="true" />
+				</button>
 				<div
 					ref={history}
 					className="history"
@@ -370,7 +355,7 @@ export function App() {
 								});
 							}}
 						>
-							↓ Latest
+							<ArrowDown aria-hidden="true" /> Latest
 						</button>
 					)}
 					{uncertain && (

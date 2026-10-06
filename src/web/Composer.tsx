@@ -1,3 +1,4 @@
+import { ArrowUp, Plus, SlidersHorizontal, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Block, Command, Snapshot } from "../shared/protocol";
 
@@ -61,7 +62,8 @@ export function Composer({
 								key={a.id}
 								onClick={() => removeAttachment(a.id)}
 							>
-								<img alt={`Attachment ${i + 1}`} src={`data:${a.mimeType};base64,${a.data}`} />×
+								<img alt={`Attachment ${i + 1}`} src={`data:${a.mimeType};base64,${a.data}`} />
+								<X aria-hidden="true" size={16} />
 							</button>
 						))}
 					</div>
@@ -98,41 +100,42 @@ export function Composer({
 					/>
 					<button
 						type="button"
-						className="subtle"
+						className="subtle icon-button"
 						aria-label="Attach images"
 						disabled={promptDisabled}
 						onClick={() => file.current?.click()}
 					>
-						＋
+						<Plus aria-hidden="true" />
 					</button>
 					<button
 						type="button"
-						className="subtle"
+						className="subtle icon-button"
 						aria-label="Message settings"
 						aria-haspopup="dialog"
 						onMouseDown={(e) => e.preventDefault()}
 						onClick={() => settings.current?.showModal()}
 					>
-						⚙
+						<SlidersHorizontal aria-hidden="true" />
 					</button>
 					<span className="spacer" />
 					{snapshot?.busy && (
 						<button
 							type="button"
+							className="icon-button"
 							aria-label="Stop"
 							disabled={!online || !ready}
 							onClick={() => command({ kind: "abort" })}
 						>
-							■
+							<Square aria-hidden="true" size={16} fill="currentColor" />
 						</button>
 					)}
 					<button
 						type="submit"
-						className="send"
+						className="send icon-button"
 						aria-label="Send message"
 						disabled={promptDisabled || (!draft.trim() && !attachments.length)}
 					>
-						↑
+						<ArrowUp aria-hidden="true" />
 					</button>
 				</div>
 			</form>

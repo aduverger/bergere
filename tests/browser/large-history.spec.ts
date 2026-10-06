@@ -141,8 +141,29 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 		const address = server.address() as { port: number };
 		const started = Date.now();
 		await page.goto(`http://127.0.0.1:${address.port}`);
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await expect(page.locator("article.message")).toHaveCount(290);
+		await expect(page.getByRole("textbox", { name: "Search sessions" })).toHaveCount(0);
+		await expect(page.getByText("Existing Herdr sessions", { exact: true })).toHaveCount(0);
+		await expect(page.locator("header")).toHaveCount(0);
+		const menu = page.getByRole("button", { name: "Open sessions", exact: true });
+		const sidebar = page.getByRole("complementary", { name: "Sessions" });
+		if (info.project.name !== "chromium") {
+			await expect(sidebar).toBeHidden();
+			await menu.click();
+			await expect(sidebar).toBeVisible();
+			await expect(menu).toHaveAttribute("aria-expanded", "true");
+			await sidebar.getByRole("button", { name: "Close sessions", exact: true }).click();
+			await expect(sidebar).toBeHidden();
+			await menu.click();
+			await sidebar.getByRole("button", { name: "Fixture idle" }).click();
+			await expect(sidebar).toBeHidden();
+			await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
+		} else {
+			await expect(sidebar).toBeVisible();
+			await expect(menu).toBeHidden();
+		}
+
 		await expect(page.locator(".tool-body")).toHaveCount(0);
 		await expect(page.locator(".thinking p")).toHaveCount(0);
 		await expect(page.locator("article.message .thinking")).toHaveCount(290);
@@ -160,7 +181,7 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 		expect(count).toBeLessThan(5000);
 		const composer = page.locator(".composer");
 		const input = page.getByRole("textbox", { name: "Message", exact: true });
-		await page.locator("header").click();
+		await page.locator(".history").click({ position: { x: 4, y: 90 } });
 		await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
 		const compactBox = await composer.boundingBox();
 		assert(compactBox);
@@ -216,7 +237,7 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 			Reflect.deleteProperty(viewport, "offsetTop");
 			viewport.dispatchEvent(new Event("resize"));
 		});
-		await page.locator("header").click();
+		await page.locator(".history").click({ position: { x: 4, y: 90 } });
 		await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
 		await expect(input).toHaveValue("A responsive composer with a large conversation");
 		expect((await composer.boundingBox())?.height).toBe(compactHeight);

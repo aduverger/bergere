@@ -93,22 +93,6 @@ img {
 	max-height: 420px;
 	border-radius: 10px;
 }
-header strong {
-	font-size: 13px;
-	font-weight: 550;
-}
-header small {
-	display: block;
-	color: #837d75;
-	font:
-		10px ui-monospace,
-		monospace;
-	margin-top: 6px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	max-width: 65vw;
-}
 .dialog textarea {
 	width: 100%;
 	margin-bottom: 12px;
@@ -135,7 +119,7 @@ header small {
 	display: flex;
 	align-items: center;
 	gap: 12px;
-	padding: 4px 8px 22px;
+	padding: 4px 8px 12px;
 }
 .brand > .bergere-logo {
 	width: 40px;
@@ -147,15 +131,10 @@ header small {
 	font-size: 14px;
 	flex: 1;
 }
-.search {
-	width: 100%;
-	font-size: 13px;
-	padding: 10px;
-}
 .sidebar nav {
 	flex: 1;
 	overflow: auto;
-	padding-top: 20px;
+	padding-top: 8px;
 }
 .sidebar h2 {
 	font-size: 11px;
@@ -223,31 +202,12 @@ i.idle {
 	gap: 8px;
 	flex-wrap: wrap;
 }
-.muted {
-	color: #746e67;
-	font-size: 10px;
-	width: 100%;
-}
 main {
 	min-width: 0;
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	position: relative;
-}
-header {
-	flex-shrink: 0;
-	min-height: 66px;
-	border-bottom: 1px solid #25231f;
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	padding: 12px 24px;
-}
-.status {
-	margin-left: auto;
-	color: #b6a28d;
-	font-size: 11px;
 }
 .history {
 	min-height: 0;
@@ -412,18 +372,6 @@ header {
 	align-items: center;
 	flex-wrap: wrap;
 }
-.controls select {
-	border: 0;
-	background: #302a24;
-	font-size: 11px;
-	max-width: 180px;
-	padding: 7px;
-	border-radius: 12px;
-}
-.controls button {
-	font-size: 18px;
-	padding: 4px 10px;
-}
 .subtle {
 	background: transparent;
 	border: 0;
@@ -487,6 +435,36 @@ header {
 	top: -40px;
 	font-size: 12px;
 }
+.icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	flex-shrink: 0;
+	padding: 0;
+	border-radius: 50%;
+}
+button > .lucide {
+	width: 20px;
+	height: 20px;
+	stroke-width: 1.75;
+	flex-shrink: 0;
+}
+.menu-button {
+	position: absolute;
+	top: 12px;
+	left: 14px;
+	z-index: 1;
+	background: #292724e6;
+	backdrop-filter: blur(12px);
+	box-shadow: 0 2px 10px #0002;
+}
+.jump {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
 .mobile-only {
 	display: none;
 }
@@ -495,7 +473,7 @@ header {
 }
 @media (max-width: 700px) {
 	.mobile-only {
-		display: block;
+		display: inline-flex;
 	}
 	.sidebar {
 		position: absolute;
@@ -520,24 +498,11 @@ header {
 		border-radius: 0;
 		z-index: 2;
 	}
-	header {
-		padding: 12px 14px;
-		min-height: 60px;
-	}
 	.history {
-		padding: 20px 14px;
+		padding: 72px 14px 20px;
 	}
 	.compose-area {
 		padding: 6px 10px max(8px, env(safe-area-inset-bottom));
-	}
-	.controls select {
-		max-width: 130px;
-		font-size: 12px;
-		min-height: 36px;
-	}
-	.controls button {
-		min-width: 40px;
-		min-height: 40px;
 	}
 	.composer {
 		padding: 10px;

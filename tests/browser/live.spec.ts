@@ -17,7 +17,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 	let ws: WebSocket | undefined;
 	try {
 		await page.goto(h.config.origin);
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await page.getByRole("textbox", { name: "Message", exact: true }).fill("Browser first");
 		await page.getByRole("button", { name: "Send message", exact: true }).click();
 		await expect(page.getByText("Local reply: Browser first", { exact: true })).toBeVisible();
@@ -131,7 +131,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 		await expect(page.getByLabel("Thinking level", { exact: true })).toHaveValue("high");
 		await page.getByRole("button", { name: "Done", exact: true }).click();
 		for (const delivery of ["steer", "followUp"]) {
-			await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+			await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 			await page
 				.getByRole("textbox", { name: "Message", exact: true })
 				.fill("slow run to exercise queued delivery now");
@@ -152,7 +152,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 		const reconnected = page.waitForEvent("websocket");
 		await h.restart();
 		await reconnected;
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await expect(page.getByRole("textbox", { name: "Message", exact: true })).toHaveValue(
 			"Draft survives reconnect",
 		);
@@ -171,15 +171,15 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 		expect(await h.readPid()).toBe(h.pid);
 		await page.reload();
 		await expect(page.getByText("Exactly once", { exact: true })).toHaveCount(1);
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await page
 			.getByRole("textbox", { name: "Message", exact: true })
 			.fill("slow abort this response with several more words");
 		await page.getByRole("button", { name: "Send message", exact: true }).click();
-		await page.locator("header").click();
+		await page.locator(".history").click({ position: { x: 4, y: 90 } });
 		await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
 		await page.getByRole("button", { name: "Stop", exact: true }).click();
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await connectWire();
 		assert(ws);
 		const oldGeneration = (await waitFor(() => state)).generation;
@@ -187,7 +187,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 		await waitFor(() => (state?.generation !== oldGeneration ? true : undefined));
 		ws.send(JSON.stringify({ ...duplicate, id: "stale-reload" }));
 		await waitFor(() => (acks.some((a) => a.id === "stale-reload" && !a.ok) ? true : undefined));
-		await expect(page.getByText("Ready", { exact: true })).toBeVisible();
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "false");
 		await page
 			.getByRole("textbox", { name: "Message", exact: true })
 			.fill("After extension reload");
@@ -215,7 +215,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
 		});
 		h.cli(["pane", "close", h.paneId]);
 		await expect(page.getByRole("button", { name: "Send message", exact: true })).toBeDisabled();
-		await expect(page.getByText("Ready", { exact: true })).toHaveCount(0);
+		await expect(page.getByRole("main")).toHaveAttribute("aria-busy", "true");
 	} finally {
 		ws?.terminate();
 		await h.close();
