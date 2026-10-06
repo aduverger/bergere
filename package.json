@@ -20,7 +20,7 @@
   },
   "pi": {
     "extensions": [
-      "./dist/extension/index.js"
+      "./companion.js"
     ]
   },
   "dependencies": {

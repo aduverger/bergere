@@ -169,6 +169,15 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
     readLines(socket, (value) => {
       chain = chain
         .then(async () => {
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            "version" in value &&
+            value.version !== 2
+          )
+            throw new Error(
+              "Companion protocol version mismatch: expected 2; rebuild and reload the companion",
+            );
           const msg = decodeCompanion(value);
           if (msg.type === "register") {
             if (path.resolve(msg.herdrSocket) !== path.resolve(c.herdrSocket))
@@ -232,8 +241,22 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
             publishSessions();
           }
         })
-        .catch(() => {
-          console.warn("Companion registration or protocol rejected");
+        .catch((error: unknown) => {
+          const reasons = [
+            "Wrong Herdr server",
+            "Missing pane",
+            "Session mismatch",
+            "Not registered",
+            "Register a new generation",
+            "Companion protocol version mismatch: expected 2; rebuild and reload the companion",
+          ];
+          const reason =
+            error instanceof Error && reasons.includes(error.message)
+              ? error.message
+              : "Invalid companion payload or Herdr snapshot unavailable";
+          console.warn(
+            `Companion registration or protocol rejected: ${reason}`,
+          );
           socket.destroy();
         });
     });

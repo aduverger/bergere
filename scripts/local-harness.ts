@@ -92,7 +92,7 @@ export async function localHarness(port = 8788) {
       "--extension",
       path.join(root, "pi/extensions/herdr-agent-state.ts"),
       "--extension",
-      path.resolve("dist/extension/index.js"),
+      path.resolve("companion.js"),
     ];
     cli(["pane", "run", paneId, args.map(quote).join(" ")]);
     const config = {

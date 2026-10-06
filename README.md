@@ -105,6 +105,8 @@ make start
 
 This release uses browser/companion protocol **2** for incremental transcript updates. Run `/reload` in each **idle** Pi pane to load the rebuilt companion, then refresh the browser. Update all three components together; an older companion cannot attach to the new gateway. Herdr and Pi processes do not need restarting.
 
+The package entry point is `companion.js`, which imports the built extension by content hash. This avoids Node retaining an older build across Pi `/reload`. If Pi was configured with an explicit `dist/extension/index.js` extension path, replace that entry with the package installation (`pi install "$PWD"`); do not load both. `make logs` distinguishes a protocol mismatch from a wrong Herdr server or session mismatch.
+
 ## Behavior
 
 - Desktop workspace sidebar, mobile session drawer, search and activity status.
