@@ -238,7 +238,7 @@ export function App() {
       )}
       <aside className={drawer ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          <span>π</span>
+          <img src="/icon.svg" alt="" className="pi-logo" />
           <strong>Pi · Herdr</strong>
           <button
             className="mobile-only subtle"
@@ -313,7 +313,7 @@ export function App() {
           <div className="transcript">
             {!session && (
               <div className="empty">
-                <span>π</span>
+                <img src="/icon.svg" alt="" className="pi-logo" />
                 <h1>Your work stays running.</h1>
                 <p>Start Pi inside Herdr, then open its session here.</p>
               </div>

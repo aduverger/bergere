@@ -123,9 +123,11 @@ img {
   gap: 12px;
   padding: 4px 8px 22px;
 }
-.brand > span {
-  color: #dfa67d;
-  font: 32px Georgia;
+.brand > .pi-logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 0;
 }
 .brand strong {
   font-size: 14px;
@@ -342,9 +344,10 @@ header small {
   color: #948b7f;
   max-width: 440px;
 }
-.empty > span {
-  font: 60px Georgia;
-  color: #dfa67d;
+.empty > .pi-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 0;
 }
 .empty h1 {
   font-size: 22px;
