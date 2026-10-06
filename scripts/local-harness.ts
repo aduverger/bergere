@@ -19,7 +19,7 @@ export async function waitFor<T>(
   throw new Error("Timed out waiting for local test state");
 }
 export async function localHarness(port = 8788) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pmh-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "bergere-"));
   await mkdir(path.join(root, "herdr"), { recursive: true });
   await writeFile(path.join(root, "herdr/config.toml"), "");
   await mkdir(path.join(root, "pi/extensions"), { recursive: true });
@@ -31,8 +31,8 @@ export async function localHarness(port = 8788) {
     XDG_CONFIG_HOME: root,
     XDG_STATE_HOME: root,
     PI_CODING_AGENT_DIR: path.join(root, "pi"),
-    PMH_BRIDGE_SOCKET: path.join(root, "bridge/bridge.sock"),
-    PMH_TEST_PID_FILE: path.join(root, "pi.pid"),
+    BERGERE_BRIDGE_SOCKET: path.join(root, "bridge/bridge.sock"),
+    BERGERE_TEST_PID_FILE: path.join(root, "pi.pid"),
   });
   const herdrSocket = path.join(root, "herdr/herdr.sock");
   let log = "";
@@ -84,7 +84,7 @@ export async function localHarness(port = 8788) {
       "--no-prompt-templates",
       "--no-themes",
       "--provider",
-      "pmh-test",
+      "bergere-test",
       "--model",
       "test",
       "--extension",
@@ -101,7 +101,7 @@ export async function localHarness(port = 8788) {
       login: "",
       local: true,
       herdrSocket,
-      bridgeSocket: env.PMH_BRIDGE_SOCKET!,
+      bridgeSocket: env.BERGERE_BRIDGE_SOCKET!,
       webRoot: path.resolve("dist/web"),
     };
     stopGateway = await startGateway(config);
@@ -139,7 +139,9 @@ export async function localHarness(port = 8788) {
   }
 }
 if (process.argv[1]?.endsWith("local-harness.ts")) {
-  const harness = await localHarness(Number(process.env.PMH_TEST_PORT ?? 8788));
+  const harness = await localHarness(
+    Number(process.env.BERGERE_TEST_PORT ?? 8788),
+  );
   console.info(`LOCAL_HARNESS_READY http://127.0.0.1:${harness.config.port}`);
   let closing = false;
   const close = async () => {

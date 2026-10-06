@@ -30,8 +30,8 @@ export default function companion(pi: ExtensionAPI) {
   const herdrSocket = process.env.HERDR_SOCKET_PATH;
   if (!paneId || !herdrSocket || process.env.HERDR_ENV !== "1") return;
   const bridgeSocket =
-    process.env.PMH_BRIDGE_SOCKET ??
-    path.join(os.homedir(), ".local/state/pi-mobile-herdr/bridge.sock");
+    process.env.BERGERE_BRIDGE_SOCKET ??
+    path.join(os.homedir(), ".local/state/bergere/bridge.sock");
   let context: ExtensionContext | undefined;
   let socket: net.Socket | undefined;
   let reconnect: ReturnType<typeof setTimeout> | undefined;

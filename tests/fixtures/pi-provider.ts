@@ -5,10 +5,10 @@ import {
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { writeFileSync } from "node:fs";
 export default function fixture(pi: ExtensionAPI) {
-  pi.registerProvider("pmh-test", {
+  pi.registerProvider("bergere-test", {
     baseUrl: "http://127.0.0.1",
     apiKey: "local-test-only",
-    api: "pmh-test-api",
+    api: "bergere-test-api",
     models: ["test", "alternate"].map((id) => ({
       id,
       name: id === "test" ? "Local test model" : "Alternate test model",
@@ -100,10 +100,10 @@ export default function fixture(pi: ExtensionAPI) {
     },
   });
   pi.on("session_start", () => {
-    if (process.env.PMH_TEST_PID_FILE)
-      writeFileSync(process.env.PMH_TEST_PID_FILE, String(process.pid));
+    if (process.env.BERGERE_TEST_PID_FILE)
+      writeFileSync(process.env.BERGERE_TEST_PID_FILE, String(process.pid));
   });
-  pi.registerCommand("pmh-custom", {
+  pi.registerCommand("bergere-custom", {
     description: "Local custom widget",
     handler: async (_args, ctx) => {
       await ctx.ui.custom((_tui, _theme, _keys, done) => ({
@@ -114,14 +114,14 @@ export default function fixture(pi: ExtensionAPI) {
         },
       }));
       pi.sendMessage({
-        customType: "pmh-test",
+        customType: "bergere-test",
         content: "Custom widget finished",
         display: true,
       });
     },
   });
   for (const kind of ["confirm", "select", "input", "editor"] as const)
-    pi.registerCommand(`pmh-${kind}`, {
+    pi.registerCommand(`bergere-${kind}`, {
       description: "Local integration test dialog",
       handler: async (_args, ctx) => {
         const value =
@@ -136,7 +136,7 @@ export default function fixture(pi: ExtensionAPI) {
                 ? await ctx.ui.input("Test input", "")
                 : await ctx.ui.editor("Test editor", "Initial text");
         pi.sendMessage({
-          customType: "pmh-test",
+          customType: "bergere-test",
           content: `Dialog ${kind}: ${String(value)}`,
           display: true,
         });

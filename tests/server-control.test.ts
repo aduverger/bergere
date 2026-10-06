@@ -15,6 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import net from "node:net";
 import http from "node:http";
+import { config } from "../src/server/config.js";
 import { tailscaleEnvironment } from "../scripts/server.js";
 
 const whoami = {
@@ -23,14 +24,14 @@ const whoami = {
 };
 it("derives only the origin and login, with explicit overrides", () => {
   const env = tailscaleEnvironment(whoami, {});
-  expect(env.PMH_ORIGIN).toBe("https://test.example.ts.net:3504");
-  expect(env.PMH_TAILSCALE_LOGIN).toBe("owner@example.com");
-  expect(env.PMH_LOCAL).toBe("0");
+  expect(env.BERGERE_ORIGIN).toBe("https://test.example.ts.net:3504");
+  expect(env.BERGERE_TAILSCALE_LOGIN).toBe("owner@example.com");
+  expect(env.BERGERE_LOCAL).toBe("0");
   expect(
     tailscaleEnvironment(null, {
-      PMH_ORIGIN: "https://custom.example.ts.net:3504",
-      PMH_TAILSCALE_LOGIN: "personal@example.com",
-    }).PMH_TAILSCALE_LOGIN,
+      BERGERE_ORIGIN: "https://custom.example.ts.net:3504",
+      BERGERE_TAILSCALE_LOGIN: "personal@example.com",
+    }).BERGERE_TAILSCALE_LOGIN,
   ).toBe("personal@example.com");
   expect(() => tailscaleEnvironment({ Node: whoami.Node }, {})).toThrow();
   expect(() =>
@@ -41,7 +42,7 @@ it("derives only the origin and login, with explicit overrides", () => {
   ).toThrow();
 });
 it("starts detached, handles duplicate start, stops, and rejects a reused PID", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pmh-control-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "bergere-control-"));
   const exec = promisify(execFile);
   for (const dir of ["scripts", "src/server", "dist/server", "dist/web", "bin"])
     await mkdir(path.join(root, dir), { recursive: true });
@@ -84,12 +85,12 @@ else exit 1; fi
   const env = {
     ...process.env,
     PATH: path.join(root, "bin") + path.delimiter + process.env.PATH,
-    PMH_LOCAL: "0",
-    PMH_ORIGIN: "",
-    PMH_TAILSCALE_LOGIN: "",
-    PMH_PORT: String(port),
+    BERGERE_LOCAL: "0",
+    BERGERE_ORIGIN: "",
+    BERGERE_TAILSCALE_LOGIN: "",
+    BERGERE_PORT: String(port),
     HERDR_SOCKET_PATH: path.join(root, "absent-herdr.sock"),
-    PMH_BRIDGE_SOCKET: path.join(root, "bridge/bridge.sock"),
+    BERGERE_BRIDGE_SOCKET: path.join(root, "bridge/bridge.sock"),
   };
   const run = (action: string, overrides: NodeJS.ProcessEnv = {}) =>
     exec("make", [action], {
@@ -154,7 +155,8 @@ else exit 1; fi
     await expect(run("start")).rejects.toThrow();
     expect((await run("status")).stdout).toContain("Not running");
     expect(
-      (await run("start", { PMH_LOCAL: "1", PMH_ORIGIN: undefined })).stdout,
+      (await run("start", { BERGERE_LOCAL: "1", BERGERE_ORIGIN: undefined }))
+        .stdout,
     ).toContain(`Started: http://127.0.0.1:${port}`);
     expect((await run("stop")).stdout).toContain("Stopped");
   } finally {
@@ -162,3 +164,15 @@ else exit 1; fi
     await rm(root, { recursive: true, force: true });
   }
 }, 30000);
+
+it("uses the Bergère socket by default and accepts an explicit bridge override", () => {
+  expect(config({ BERGERE_LOCAL: "1" }).bridgeSocket).toBe(
+    path.join(os.homedir(), ".local/state/bergere/bridge.sock"),
+  );
+  expect(
+    config({
+      BERGERE_LOCAL: "1",
+      BERGERE_BRIDGE_SOCKET: "/tmp/custom-bergere.sock",
+    }).bridgeSocket,
+  ).toBe("/tmp/custom-bergere.sock");
+});

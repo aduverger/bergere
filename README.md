@@ -6,15 +6,27 @@ A private, mobile-first web client for **existing Pi processes inside Herdr**. R
 
 Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable projections and never launches Pi or writes session logs.
 
-## Renamed from pi-mobile-herdr
+## Reinstalling after the rename
 
-Existing checkout directories and Pi extension installation paths can stay as they are. Update your remote with:
+Bergère uses `BERGERE_*` environment variables and `~/.local/state/bergere/bridge.sock`. The old variable names and socket path are no longer supported.
+
+On EC2, stop the old gateway with `make stop` from its checkout (or stop and disable `pi-mobile-herdr.service` if using systemd). Remove the old Pi package using the exact source originally installed; for a local installation:
+
+```sh
+pi remove /absolute/path/to/pi-mobile-herdr
+```
+
+Remove any explicit old companion entry from Pi's extension settings as well. Then install from the Bergère checkout:
 
 ```sh
 git remote set-url origin git@github.com:aduverger/bergere.git
+pnpm install --frozen-lockfile
+make build
+pi install "$PWD"
+make start
 ```
 
-The `PMH_*` environment variables and `~/.local/state/pi-mobile-herdr/bridge.sock` remain unchanged so installed companions and gateway configuration keep working. If you move a checkout, update its Pi installation path and any service working directory explicitly; do not install a second copy of the companion.
+Replace any configured `PMH_*` variables with `BERGERE_*`, including overrides in Pi's launch environment. For systemd, configure the new `bergere.service` and environment file using the [deployment instructions](docs/DEPLOYMENT.md) instead of `make start`. Run `/reload` in each idle Pi session and refresh the browser. Herdr and Pi retain their sessions; only the companion and gateway are reinstalled.
 
 ## Build and test locally
 
@@ -48,14 +60,14 @@ Building the repository does not install the companion. These are explicit setup
 4. Start the gateway from this repository:
 
 ```sh
-PMH_LOCAL=1 pnpm start
+BERGERE_LOCAL=1 pnpm start
 ```
 
 Open `http://127.0.0.1:8787`. If Herdr uses a non-default socket, supply `HERDR_SOCKET_PATH=/absolute/path/herdr.sock` to the gateway. The companion takes its server identity from the pane's environment. A pane without a compatible companion stays visible with disabled controls.
 
-Default bridge: `~/.local/state/pi-mobile-herdr/bridge.sock`. Its directory must belong to the current user with mode `0700`; the socket is `0600`. An optional `PMH_BRIDGE_SOCKET` must match in the Pi process and gateway environments. The default works without changing existing pane environments.
+Default bridge: `~/.local/state/bergere/bridge.sock`. Its directory must belong to the current user with mode `0700`; the socket is `0600`. An optional `BERGERE_BRIDGE_SOCKET` must match in the Pi process and gateway environments. The default works without changing existing pane environments.
 
-`pnpm dev` runs Vite on loopback and proxies `/ws` to port 8787. For that workflow start `PMH_LOCAL=1 PMH_ORIGIN=http://127.0.0.1:5173 pnpm gateway`, then open the Vite URL. Production always serves built assets and WebSocket from one origin.
+`pnpm dev` runs Vite on loopback and proxies `/ws` to port 8787. For that workflow start `BERGERE_LOCAL=1 BERGERE_ORIGIN=http://127.0.0.1:5173 pnpm gateway`, then open the Vite URL. Production always serves built assets and WebSocket from one origin.
 
 ## Run the server on EC2
 
@@ -78,8 +90,8 @@ make stop     # disable Serve on 3504 and gracefully stop the gateway
 
 `make start` runs `tailscale whoami --json` and derives:
 
-- `PMH_ORIGIN`: `https://<Node.Name without trailing dot>:3504`
-- `PMH_TAILSCALE_LOGIN`: `UserProfile.LoginName`
+- `BERGERE_ORIGIN`: `https://<Node.Name without trailing dot>:3504`
+- `BERGERE_TAILSCALE_LOGIN`: `UserProfile.LoginName`
 
 After the gateway is ready it configures:
 
@@ -87,18 +99,18 @@ After the gateway is ready it configures:
 tailscale serve --bg --yes --https=3504 http://127.0.0.1:8787
 ```
 
-Open the printed HTTPS URL on your phone with Tailscale connected. Port **3504** is dedicated to this app. `make stop` disables that port only; it does not reset other Serve configuration or stop Herdr/Pi. The local backend remains on **127.0.0.1:8787**. An explicit `PMH_PORT` changes the backend port and Serve target together; HTTPS remains 3504.
+Open the printed HTTPS URL on your phone with Tailscale connected. Port **3504** is dedicated to this app. `make stop` disables that port only; it does not reset other Serve configuration or stop Herdr/Pi. The local backend remains on **127.0.0.1:8787**. An explicit `BERGERE_PORT` changes the backend port and Serve target together; HTTPS remains 3504.
 
 Tailscale must be connected and this user must have permission to manage Serve. If it requires additional permission or HTTPS setup, startup fails with guidance; the helper does not invoke sudo or change tailnet policy. Restrict destination TCP **3504** in your tailnet policy to your identity, accounting for existing broad allow rules. Do not open public EC2 application ports.
 
-Explicit `PMH_ORIGIN` and `PMH_TAILSCALE_LOGIN` override discovery; the origin must still use HTTPS port 3504. For a tagged node without a user profile, provide the exact phone user's login explicitly. Missing identity fails closed. The full whoami response is never saved or logged.
+Explicit `BERGERE_ORIGIN` and `BERGERE_TAILSCALE_LOGIN` override discovery; the origin must still use HTTPS port 3504. For a tagged node without a user profile, provide the exact phone user's login explicitly. Missing identity fails closed. The full whoami response is never saved or logged.
 
 The gateway runs detached from your shell. Its PID record and append-only log live in gitignored `.run/`. Repeating `make start` reuses the tracked gateway and reapplies Serve. `make stop` checks the process start time and command before signaling, so stale PID records cannot stop an unrelated process. After changing configuration or rebuilding, use `make stop` then `make start`. This helper does not restart the gateway on crashes or reboot; use the [systemd setup](docs/DEPLOYMENT.md) for that, instead of running both managers.
 
 For local-only background operation, with no Tailscale commands:
 
 ```sh
-PMH_LOCAL=1 make start
+BERGERE_LOCAL=1 make start
 make stop
 ```
 

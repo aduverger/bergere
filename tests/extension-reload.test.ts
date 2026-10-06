@@ -7,7 +7,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 it("Pi reload uses a rebuilt companion bundle in the same Node process", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pmh-reload-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "bergere-reload-"));
   try {
     await mkdir(path.join(root, "dist/extension"), { recursive: true });
     await copyFile("companion.js", path.join(root, "companion.js"));

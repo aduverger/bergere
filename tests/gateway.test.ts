@@ -19,7 +19,7 @@ async function until<T>(read: () => T | undefined): Promise<T> {
   throw new Error("Missing gateway event");
 }
 it("validates real HTTP/WS access and invalidates a reused pane without redirecting commands", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pmh-gateway-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "bergere-gateway-"));
   await mkdir(path.join(root, "web"));
   await writeFile(path.join(root, "web/index.html"), "test");
   const herdrSocket = path.join(root, "herdr.sock");
@@ -237,7 +237,7 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 });
 
 it("recovers an owned socket left behind by a crashed gateway", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "pmh-crash-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "bergere-crash-"));
   const bridgeSocket = path.join(root, "bridge.sock");
   const child = spawn(process.execPath, [
     "-e",

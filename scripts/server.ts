@@ -47,25 +47,26 @@ export function tailscaleEnvironment(
   const name = identity?.Node?.Name;
   const login = identity?.UserProfile?.LoginName;
   const origin =
-    env.PMH_ORIGIN ||
+    env.BERGERE_ORIGIN ||
     (typeof name === "string" && /^[a-z0-9.-]+\.?$/i.test(name)
       ? `https://${name.replace(/\.$/, "")}:3504`
       : "");
   const allowedLogin =
-    env.PMH_TAILSCALE_LOGIN || (typeof login === "string" ? login.trim() : "");
+    env.BERGERE_TAILSCALE_LOGIN ||
+    (typeof login === "string" ? login.trim() : "");
   if (!origin || !allowedLogin)
     throw new Error(
-      "tailscale whoami did not supply a DNS name and user login. Set PMH_ORIGIN and PMH_TAILSCALE_LOGIN explicitly for a tagged/server-owned node.",
+      "tailscale whoami did not supply a DNS name and user login. Set BERGERE_ORIGIN and BERGERE_TAILSCALE_LOGIN explicitly for a tagged/server-owned node.",
     );
   const result = {
     ...env,
-    PMH_LOCAL: "0",
-    PMH_ORIGIN: origin,
-    PMH_TAILSCALE_LOGIN: allowedLogin,
+    BERGERE_LOCAL: "0",
+    BERGERE_ORIGIN: origin,
+    BERGERE_TAILSCALE_LOGIN: allowedLogin,
   };
   config(result);
   if (new URL(origin).port !== "3504")
-    throw new Error("PMH_ORIGIN must use HTTPS port 3504 for make start.");
+    throw new Error("BERGERE_ORIGIN must use HTTPS port 3504 for make start.");
   return result;
 }
 function processIdentity(pid: number): string | undefined {
@@ -112,9 +113,9 @@ async function start() {
   try {
     await access(path.join(root, "dist/server/main.js"));
     let env = { ...process.env };
-    if (env.PMH_LOCAL !== "1") {
+    if (env.BERGERE_LOCAL !== "1") {
       let identity: unknown = null;
-      if (!env.PMH_ORIGIN || !env.PMH_TAILSCALE_LOGIN) {
+      if (!env.BERGERE_ORIGIN || !env.BERGERE_TAILSCALE_LOGIN) {
         try {
           identity = JSON.parse(
             execFileSync("tailscale", ["whoami", "--json"], {
@@ -125,7 +126,7 @@ async function start() {
           );
         } catch {
           throw new Error(
-            "Cannot run tailscale whoami --json. Check Tailscale is installed and connected, or set PMH_ORIGIN and PMH_TAILSCALE_LOGIN explicitly.",
+            "Cannot run tailscale whoami --json. Check Tailscale is installed and connected, or set BERGERE_ORIGIN and BERGERE_TAILSCALE_LOGIN explicitly.",
           );
         }
       }

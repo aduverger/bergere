@@ -38,7 +38,7 @@ export function herdrRequest(
       reject(new Error("Herdr connection closed"));
     });
     socket.once("connect", () =>
-      sendLine(socket, { id: "pmh", method, params }),
+      sendLine(socket, { id: "bergere", method, params }),
     );
     readLines(socket, (value) => {
       const r = record(value);

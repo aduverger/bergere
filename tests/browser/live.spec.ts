@@ -79,7 +79,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       acks.some((a) => a.id === "dedup-test" && a.ok) ? true : undefined,
     );
     for (const kind of ["confirm", "select", "input", "editor"]) {
-      h.terminal("/pmh-" + kind);
+      h.terminal("/bergere-" + kind);
       if (kind === "confirm")
         await page.getByRole("button", { name: "Allow", exact: true }).click();
       else if (kind === "select")
@@ -100,7 +100,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
         ),
       ).toBeVisible();
     }
-    h.terminal("/pmh-input");
+    h.terminal("/bergere-input");
     await expect(
       page.getByRole("textbox", { name: "Test input", exact: true }),
     ).toBeVisible();
@@ -127,7 +127,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       page.getByText("Local tool output", { exact: true }),
     ).toBeVisible();
     await page.locator("details.tool summary").click();
-    h.terminal("/pmh-custom");
+    h.terminal("/bergere-custom");
     await expect(
       page.getByText("This custom interaction requires the terminal.", {
         exact: true,
@@ -144,9 +144,9 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await page.getByRole("button", { name: "Message settings" }).click();
     await page
       .getByLabel("Model", { exact: true })
-      .selectOption("pmh-test/alternate");
+      .selectOption("bergere-test/alternate");
     await waitFor(() =>
-      state?.model === "pmh-test/alternate" ? true : undefined,
+      state?.model === "bergere-test/alternate" ? true : undefined,
     );
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await page
