@@ -1,3 +1,4 @@
+![bergere](https://github.com/aduverger/bergere/blob/main/public/icon-192.png)
 # Bergère
 
 **Your agents, within reach.**
