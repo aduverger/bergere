@@ -6,61 +6,6 @@ A private, mobile-first web client for **existing Pi processes inside Herdr**. R
 
 Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable projections and never launches Pi or writes session logs.
 
-## Reinstalling after the rename
-
-Bergère uses `BERGERE_*` environment variables and `~/.local/state/bergere/bridge.sock`. The old variable names and socket path are no longer supported.
-
-On EC2, stop the old gateway with `make stop` from its checkout (or stop and disable `pi-mobile-herdr.service` if using systemd). Remove the old Pi package using the exact source originally installed; for a local installation:
-
-```sh
-pi remove /absolute/path/to/pi-mobile-herdr
-```
-
-Remove any explicit old companion entry from Pi's extension settings as well. Then install from the Bergère checkout:
-
-```sh
-git remote set-url origin git@github.com:aduverger/bergere.git
-pnpm install --frozen-lockfile
-make build
-pi install "$PWD"
-make start
-```
-
-Replace any configured `PMH_*` variables with `BERGERE_*`, including overrides in Pi's launch environment. For systemd, configure the new `bergere.service` and environment file using the [deployment instructions](docs/DEPLOYMENT.md) instead of `make start`. Run `/reload` in each idle Pi session and refresh the browser. Herdr and Pi retain their sessions; only the companion and gateway are reinstalled.
-
-## Build and test locally
-
-Requires Node.js 24+, pnpm 11, Pi 1.0.3 and Herdr protocol 22. The local integration suite was run with Herdr 0.9.3 and Pi 1.0.3. The existing 0.9.1 server exposes protocol 22; it was not modified. Check the actual server protocol before deploying anywhere else. Nothing installs or upgrades the global Pi/Herdr installations automatically.
-
-```sh
-pnpm install --frozen-lockfile
-pnpm check
-pnpm exec playwright install chromium webkit
-pnpm test:browser
-```
-
-`pnpm check` runs Biome, type-aware ESLint, strict TypeScript checks, Knip, tests, and the production build. CI runs the same command on pull requests and pushes to `main` using Node.js 24. The browser suite remains a separate local check because it requires Herdr.
-
-- `pnpm lint`: formatting, import organization, React/accessibility rules, complexity (maximum 25), unsafe assertions, unused code, and type-aware promise/control-flow checks.
-- `pnpm format`: apply Biome formatting and safe fixes (tabs, double quotes, semicolons, 100-column lines).
-- `pnpm typecheck`: strict types, checked indexed access, unused locals/parameters, exhaustive returns, and explicit overrides.
-- `pnpm knip`: unused files, exports, and dependencies. Its configuration includes the dynamically loaded Pi companion and test provider; Herdr and Tailscale are external system binaries.
-
-TypeScript is pinned to the 6.0 release line because the current `typescript-eslint` parser does not support TypeScript 7. No TanStack Query, Tailwind, or backend Python rules are included.
-
-Optional Git hooks match the reference repository's pre-commit workflow. With `pre-commit` installed, run `pre-commit install`. The hooks run `pnpm check` for source/config changes and check whitespace, file endings, YAML/TOML, merge conflicts, and oversized additions. Hook installation is explicit and is not performed by `pnpm install`.
-
-The browser suite starts disposable headless Herdr servers with isolated Pi settings and a deterministic local provider. It uses no model credentials or external inference. It tests the actual Pi TUI and companion, not a replacement runtime. Test fixtures are never loaded by the production package. The suite closes its own servers afterward and leaves other Herdr sessions untouched.
-
-To inspect a disposable live session yourself:
-
-```sh
-pnpm build
-pnpm demo
-```
-
-Open `http://127.0.0.1:8788`. Stop with Ctrl+C to remove the disposable session. This is local-only; no Tailscale sharing is configured.
-
 ## Connect your existing local sessions
 
 Building the repository does not install the companion. These are explicit setup steps:
@@ -127,20 +72,38 @@ make stop
 
 `pnpm start` remains the foreground command with explicit environment configuration.
 
-## Updating an existing server
+## Build and test locally
 
-After transferring the updated checkout to EC2:
+Requires Node.js 24+, pnpm 11, Pi 1.0.3 and Herdr protocol 22. The local integration suite was run with Herdr 0.9.3 and Pi 1.0.3. The existing 0.9.1 server exposes protocol 22; it was not modified. Check the actual server protocol before deploying anywhere else. Nothing installs or upgrades the global Pi/Herdr installations automatically.
 
 ```sh
 pnpm install --frozen-lockfile
-make build
-make stop
-make start
+pnpm check
+pnpm exec playwright install chromium webkit
+pnpm test:browser
 ```
 
-This release uses browser/companion protocol **2** for incremental transcript updates. Run `/reload` in each **idle** Pi pane to load the rebuilt companion, then refresh the browser. Update all three components together; an older companion cannot attach to the new gateway. Herdr and Pi processes do not need restarting.
+`pnpm check` runs Biome, type-aware ESLint, strict TypeScript checks, Knip, tests, and the production build. CI runs the same command on pull requests and pushes to `main` using Node.js 24. The browser suite remains a separate local check because it requires Herdr.
 
-The package entry point is `companion.js`, which imports the built extension by content hash. This avoids Node retaining an older build across Pi `/reload`. If Pi was configured with an explicit `dist/extension/index.js` extension path, replace that entry with the package installation (`pi install "$PWD"`); do not load both. `make logs` distinguishes a protocol mismatch from a wrong Herdr server or session mismatch.
+- `pnpm lint`: formatting, import organization, React/accessibility rules, complexity (maximum 25), unsafe assertions, unused code, and type-aware promise/control-flow checks.
+- `pnpm format`: apply Biome formatting and safe fixes (tabs, double quotes, semicolons, 100-column lines).
+- `pnpm typecheck`: strict types, checked indexed access, unused locals/parameters, exhaustive returns, and explicit overrides.
+- `pnpm knip`: unused files, exports, and dependencies. Its configuration includes the dynamically loaded Pi companion and test provider; Herdr and Tailscale are external system binaries.
+
+TypeScript is pinned to the 6.0 release line because the current `typescript-eslint` parser does not support TypeScript 7. No TanStack Query, Tailwind, or backend Python rules are included.
+
+Optional Git hooks match the reference repository's pre-commit workflow. With `pre-commit` installed, run `pre-commit install`. The hooks run `pnpm check` for source/config changes and check whitespace, file endings, YAML/TOML, merge conflicts, and oversized additions. Hook installation is explicit and is not performed by `pnpm install`.
+
+The browser suite starts disposable headless Herdr servers with isolated Pi settings and a deterministic local provider. It uses no model credentials or external inference. It tests the actual Pi TUI and companion, not a replacement runtime. Test fixtures are never loaded by the production package. The suite closes its own servers afterward and leaves other Herdr sessions untouched.
+
+To inspect a disposable live session yourself:
+
+```sh
+pnpm build
+pnpm demo
+```
+
+Open `http://127.0.0.1:8788`. Stop with Ctrl+C to remove the disposable session. This is local-only; no Tailscale sharing is configured.
 
 ## Behavior
 
