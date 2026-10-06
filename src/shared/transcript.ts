@@ -93,7 +93,7 @@ export function transcriptTools(
 
 export type TranscriptEntry =
   | { kind: "message"; id: string; role: string; content: readonly Block[] }
-  | { kind: "activity"; id: string; tools: Tool[]; reasoning: Block[] };
+  | { kind: "activity"; id: string; tools: Tool[] };
 
 export function transcriptEntries(
   messages: readonly Message[],
@@ -119,7 +119,6 @@ export function transcriptEntries(
       kind: "activity",
       id,
       tools: [],
-      reasoning: [],
     };
     entries.push(entry);
     return entry;
@@ -140,9 +139,6 @@ export function transcriptEntries(
     m.content.forEach((block, index) => {
       if (block.type === "toolCall") {
         addTool(block.id);
-        segment = undefined;
-      } else if (block.type === "thinking") {
-        activity(m.id).reasoning.push(block);
         segment = undefined;
       } else if (block.type !== "text" || block.text.trim()) {
         if (segment) segment.content = [...segment.content, block];
@@ -172,7 +168,6 @@ export function transcriptEntries(
       kind: "activity",
       id: orphaned[0].id,
       tools: orphaned,
-      reasoning: [],
     });
   }
   return entries;

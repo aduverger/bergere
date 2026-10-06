@@ -157,14 +157,13 @@ const MemoToolRow = memo(
     a.tool.detailsDeferred === b.tool.detailsDeferred,
 );
 
-function Activity({ tools, reasoning }: { tools: Tool[]; reasoning: Block[] }) {
+function Activity({ tools }: { tools: Tool[] }) {
   const [open, setOpen] = useState(false);
   const running = tools.filter((t) => t.status === "running");
   const failed = tools.filter((t) => t.status === "error").length;
-  if (tools.length <= 1)
+  if (tools.length <= 5)
     return (
       <>
-        <Content blocks={reasoning} />
         {tools.map((t) => (
           <MemoToolRow key={t.id} tool={t} />
         ))}
@@ -184,7 +183,6 @@ function Activity({ tools, reasoning }: { tools: Tool[]; reasoning: Block[] }) {
       </summary>
       {open && (
         <div className="activity-body">
-          <Content blocks={reasoning} />
           {tools.map((t) => (
             <MemoToolRow key={t.id} tool={t} />
           ))}
@@ -216,11 +214,7 @@ export const Transcript = memo(function Transcript({
     <ToolContext.Provider value={{ paneId, generation }}>
       {entries.map((entry) =>
         entry.kind === "activity" ? (
-          <Activity
-            key={entry.id}
-            tools={entry.tools}
-            reasoning={entry.reasoning}
-          />
+          <Activity key={entry.id} tools={entry.tools} />
         ) : (
           <article key={entry.id} className={`message ${entry.role}`}>
             {entry.content.map((block, i) => (

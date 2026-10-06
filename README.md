@@ -110,7 +110,7 @@ The package entry point is `companion.js`, which imports the built extension by 
 ## Behavior
 
 - Desktop workspace sidebar, mobile session drawer, search and activity status.
-- Markdown, code, images, and chronological tool activity. Consecutive tool calls fold into a summary; nested calls remain with their parent before the final answer. Expand the group to inspect individual calls.
+- Markdown, code, images, and chronological tool activity. Runs of more than five consecutive tool calls fold into a summary; nested calls remain with their parent before the final answer. Expand the group to inspect individual calls. Reasoning stays in its original message position beside the surrounding text, outside tool groups.
 - Browser snapshots carry tool summaries only. Full arguments and results load when an individual tool opens, through the same identity checks and attachment generation. Open running tools refresh at most once per second after each response; closing releases the request and timer. No transcript details are cached offline.
 - Nested execution events remain available for the companion attachment lifetime. Pi does not persist those child events in its conversation history, so a companion reload cannot reconstruct historical child details.
 - Send, steer, follow-up, abort, model and thinking selection.

@@ -107,3 +107,48 @@ it("does not infer nesting from standalone IDs sharing a prefix", () => {
     ["t1"],
   );
 });
+
+it("keeps reasoning beside its message text and between the original tool calls", () => {
+  const before = { type: "thinking" as const, thinking: "Before the read" };
+  const after = { type: "thinking" as const, thinking: "After the read" };
+  const rows = transcriptEntries(
+    [
+      call("first"),
+      {
+        id: "mixed",
+        role: "assistant",
+        content: [
+          before,
+          ...text("progress").content,
+          ...call("second").content,
+          after,
+          ...text("answer").content,
+        ],
+      },
+    ],
+    [],
+  );
+  expect(rows.map((r) => r.kind)).toEqual([
+    "activity",
+    "message",
+    "activity",
+    "message",
+  ]);
+  expect(rows[1]).toEqual({
+    kind: "message",
+    id: "mixed:0",
+    role: "assistant",
+    content: [before, ...text("progress").content],
+  });
+  expect(rows[3]).toEqual({
+    kind: "message",
+    id: "mixed:3",
+    role: "assistant",
+    content: [after, ...text("answer").content],
+  });
+  expect(
+    rows
+      .filter((r) => r.kind === "activity")
+      .map((r) => r.tools.map((t) => t.id)),
+  ).toEqual([["first"], ["second"]]);
+});
