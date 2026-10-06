@@ -116,19 +116,24 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
         };
       });
   }
-  function publishSessions() {
+  let publishedSessions = "";
+  function publishSessions(newClient?: WebSocket) {
     const msg = {
       type: "sessions" as const,
-      version: 1 as const,
+      version: 2 as const,
       sessions: sessions(),
       error: discoveryError,
     };
-    for (const ws of browsers.keys()) send(ws, msg);
+    const serialized = JSON.stringify(msg);
+    if (serialized !== publishedSessions) {
+      publishedSessions = serialized;
+      for (const ws of browsers.keys()) send(ws, msg);
+    } else if (newClient) send(newClient, msg);
   }
   function unavailable(paneId: string, error: string) {
     for (const [ws, selected] of browsers)
       if (selected === paneId)
-        send(ws, { type: "unavailable", version: 1, paneId, error });
+        send(ws, { type: "unavailable", version: 2, paneId, error });
   }
   function drop(a: Attachment) {
     if (attachments.get(a.registration.paneId) !== a) return;
@@ -143,7 +148,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
         for (const ws of clients)
           send(ws, {
             type: "unavailable",
-            version: 1,
+            version: 2,
             paneId: a.registration.paneId,
             error:
               "Command delivery is uncertain. Check the transcript before sending again.",
@@ -196,7 +201,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
               if (selected === msg.paneId)
                 send(ws, {
                   type: "snapshot",
-                  version: 1,
+                  version: 2,
                   paneId: msg.paneId,
                   snapshot: candidate.state,
                 });
@@ -268,6 +273,8 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
         return;
       }
       const data = await fs.readFile(file);
+      if (/^\/assets\/[^/]+-[\w-]+\.(js|css)$/.test(relative))
+        res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
       const mime: Record<string, string> = {
         ".html": "text/html",
         ".js": "text/javascript",
@@ -295,7 +302,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
   });
   wss.on("connection", (ws) => {
     browsers.set(ws, "");
-    publishSessions();
+    publishSessions(ws);
     let alive = true;
     ws.on("pong", () => {
       alive = true;
@@ -331,14 +338,14 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
         if (a && valid(a))
           send(ws, {
             type: "snapshot",
-            version: 1,
+            version: 2,
             paneId: msg.paneId,
             snapshot: a.state,
           });
         else
           send(ws, {
             type: "unavailable",
-            version: 1,
+            version: 2,
             paneId: msg.paneId,
             error: "Session companion unavailable.",
           });
@@ -347,7 +354,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
       const fail = (error: string) =>
         send(ws, {
           type: "ack",
-          version: 1,
+          version: 2,
           id: msg.id,
           paneId: msg.paneId,
           generation: msg.generation,
@@ -413,7 +420,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
           if (a && valid(a))
             send(ws, {
               type: "snapshot",
-              version: 1,
+              version: 2,
               paneId,
               snapshot: a.state,
             });

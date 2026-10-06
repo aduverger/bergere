@@ -49,14 +49,14 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       });
       await new Promise<void>((resolve) => ws!.once("open", resolve));
       ws!.send(
-        JSON.stringify({ type: "subscribe", version: 1, paneId: h.paneId }),
+        JSON.stringify({ type: "subscribe", version: 2, paneId: h.paneId }),
       );
       await waitFor(() => state);
     }
     await connectWire();
     const duplicate: Command = {
       type: "command",
-      version: 1,
+      version: 2,
       paneId: h.paneId,
       generation: state!.generation,
       id: "dedup-test",
@@ -149,16 +149,14 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await page
       .getByRole("textbox", { name: "Message", exact: true })
       .fill("Image input");
-    await page
-      .locator("input[type=file]")
-      .setInputFiles({
-        name: "test.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGO4uqweK2IYWhIAgyd+gfBHvaAAAAAASUVORK5CYII=",
-          "base64",
-        ),
-      });
+    await page.locator("input[type=file]").setInputFiles({
+      name: "test.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGO4uqweK2IYWhIAgyd+gfBHvaAAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
     await expect(
       page.getByRole("img", { name: "Attachment 1", exact: true }),
     ).toBeVisible();
@@ -199,7 +197,9 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await page
       .getByRole("textbox", { name: "Message", exact: true })
       .fill("Draft survives reconnect");
+    const reconnected = page.waitForEvent("websocket");
     await h.restart();
+    await reconnected;
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "Message", exact: true }),

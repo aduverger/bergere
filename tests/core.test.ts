@@ -28,7 +28,7 @@ export const state: Snapshot = {
 };
 const cmd: Command = {
   type: "command",
-  version: 1,
+  version: 2,
   id: "1",
   paneId: "p1",
   generation: "g1",
@@ -36,7 +36,7 @@ const cmd: Command = {
 };
 describe("protocol recovery", () => {
   it("rejects unsupported versions and malformed commands", () => {
-    expect(() => decodeCommand({ ...cmd, version: 2 })).toThrow();
+    expect(() => decodeCommand({ ...cmd, version: 3 })).toThrow();
     expect(() =>
       decodeCommand({ ...cmd, action: { kind: "shell", text: "bad" } }),
     ).toThrow();
@@ -47,6 +47,29 @@ describe("protocol recovery", () => {
     expect(applyPatch(state, patch)).toEqual(next);
     expect(applyPatch(next, patch)).toBeUndefined();
     expect(applyPatch({ ...state, generation: "g2" }, patch)).toBeUndefined();
+  });
+  it("splices changed suffixes while retaining history and rejects invalid offsets", () => {
+    const first = {
+      id: "first",
+      role: "user",
+      content: [{ type: "text" as const, text: "hello" }],
+    };
+    const previous = { ...state, messages: [first] };
+    const next = {
+      ...previous,
+      revision: 2,
+      messages: [first, { ...first, id: "second" }],
+    };
+    const patch = diffSnapshot(previous, next);
+    expect(patch.messages?.from).toBe(1);
+    expect(applyPatch(previous, patch)).toEqual(next);
+    expect(applyPatch(previous, patch)?.messages[0]).toBe(first);
+    for (const from of [-1, 0.5, 2])
+      expect(
+        applyPatch(previous, { ...patch, messages: { from, items: [] } }),
+      ).toBeUndefined();
+    const truncated = { ...next, revision: 3, messages: [] };
+    expect(applyPatch(next, diffSnapshot(next, truncated))).toEqual(truncated);
   });
   it("never includes abandoned branch entries and matches tool results by ID", () => {
     const messages = branchMessages([

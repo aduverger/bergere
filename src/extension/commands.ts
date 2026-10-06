@@ -11,7 +11,7 @@ export class CommandLedger {
   ): Promise<Ack> {
     const base = {
       type: "ack" as const,
-      version: 1 as const,
+      version: 2 as const,
       id: command.id,
       paneId: command.paneId,
       generation: command.generation,

@@ -65,7 +65,7 @@ export class Connection {
     this.selected = paneId;
     if (paneId && this.socket?.readyState === WebSocket.OPEN)
       this.socket.send(
-        JSON.stringify({ type: "subscribe", version: 1, paneId }),
+        JSON.stringify({ type: "subscribe", version: 2, paneId }),
       );
   }
   send(command: Command) {

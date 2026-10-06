@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-export const VERSION = 1;
+export const VERSION = 2;
 const text = Schema.String;
 const strings = Schema.Array(text);
 export const ImageSchema = Schema.Struct({
@@ -66,8 +66,12 @@ export const PatchSchema = Schema.Struct({
   generation: text,
   baseRevision: Schema.Number,
   revision: Schema.Number,
-  messages: Schema.optional(Schema.Array(MessageSchema)),
-  tools: Schema.optional(Schema.Array(ToolSchema)),
+  messages: Schema.optional(
+    Schema.Struct({ from: Schema.Number, items: Schema.Array(MessageSchema) }),
+  ),
+  tools: Schema.optional(
+    Schema.Struct({ from: Schema.Number, items: Schema.Array(ToolSchema) }),
+  ),
   dialogs: Schema.optional(Schema.Array(DialogSchema)),
   models: Schema.optional(Schema.Array(ModelSchema)),
   model: Schema.optional(text),
@@ -220,8 +224,28 @@ export function applyPatch(
     patch.revision <= patch.baseRevision
   )
     return;
-  const { baseRevision: _, ...changes } = patch;
-  return { ...state, ...changes };
+  const { baseRevision: _, messages, tools, ...changes } = patch;
+  for (const [splice, length] of [
+    [messages, state.messages.length],
+    [tools, state.tools.length],
+  ] as const)
+    if (
+      splice &&
+      (!Number.isInteger(splice.from) ||
+        splice.from < 0 ||
+        splice.from > length)
+    )
+      return;
+  return {
+    ...state,
+    ...changes,
+    messages: messages
+      ? [...state.messages.slice(0, messages.from), ...messages.items]
+      : state.messages,
+    tools: tools
+      ? [...state.tools.slice(0, tools.from), ...tools.items]
+      : state.tools,
+  };
 }
 export function diffSnapshot(previous: Snapshot, next: Snapshot): Patch {
   const patch: Record<string, unknown> = {
@@ -229,9 +253,19 @@ export function diffSnapshot(previous: Snapshot, next: Snapshot): Patch {
     baseRevision: previous.revision,
     revision: next.revision,
   };
+  for (const key of ["messages", "tools"] as const) {
+    let from = 0;
+    while (
+      from < previous[key].length &&
+      from < next[key].length &&
+      (previous[key][from] === next[key][from] ||
+        JSON.stringify(previous[key][from]) === JSON.stringify(next[key][from]))
+    )
+      from++;
+    if (from !== previous[key].length || from !== next[key].length)
+      patch[key] = { from, items: next[key].slice(from) };
+  }
   for (const key of [
-    "messages",
-    "tools",
     "dialogs",
     "models",
     "model",

@@ -117,7 +117,7 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
     await new Promise<void>((r) => companion!.once("connect", r));
     sendLine(companion, {
       type: "register",
-      version: 1,
+      version: 2,
       herdrSocket,
       paneId: "pane",
       pid: process.pid,
@@ -157,14 +157,14 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
         : undefined,
     );
     browser.send(
-      JSON.stringify({ type: "subscribe", version: 1, paneId: "pane" }),
+      JSON.stringify({ type: "subscribe", version: 2, paneId: "pane" }),
     );
     await until(() => events.find((e) => e.type === "snapshot"));
     terminalId = "replacement";
     browser.send(
       JSON.stringify({
         type: "command",
-        version: 1,
+        version: 2,
         paneId: "pane",
         generation: "g1",
         id: "old-command",

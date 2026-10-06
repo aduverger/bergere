@@ -49,10 +49,18 @@ export default function companion(pi: ExtensionAPI) {
   let model = "";
   let thinking = "off";
   const tools = new Map<string, Tool>();
+  let historyCache = new WeakMap<object, Message[]>();
   const broker = new DialogBroker(schedule);
   function snapshot(): Snapshot {
     if (!context) throw new Error("Session not started");
-    const messages = branchMessages(context.sessionManager.getBranch());
+    const messages = context.sessionManager.getBranch().flatMap((entry) => {
+      let projected = historyCache.get(entry);
+      if (!projected) {
+        projected = branchMessages([entry]);
+        historyCache.set(entry, projected);
+      }
+      return projected;
+    });
     if (liveMessage) messages.push(liveMessage);
     return {
       generation,
@@ -82,7 +90,7 @@ export default function companion(pi: ExtensionAPI) {
       if (!last)
         sendLine(socket, {
           type: "register",
-          version: 1,
+          version: 2,
           herdrSocket,
           paneId,
           pid: process.pid,
@@ -91,7 +99,7 @@ export default function companion(pi: ExtensionAPI) {
       else
         sendLine(socket, {
           type: "patch",
-          version: 1,
+          version: 2,
           paneId,
           patch: diffSnapshot(last, next),
         });
@@ -158,7 +166,7 @@ export default function companion(pi: ExtensionAPI) {
       if (record(value).type === "resync") {
         sendLine(current, {
           type: "snapshot",
-          version: 1,
+          version: 2,
           paneId,
           snapshot: snapshot(),
         });
@@ -205,6 +213,7 @@ export default function companion(pi: ExtensionAPI) {
     ledger = new CommandLedger();
     liveMessage = undefined;
     tools.clear();
+    historyCache = new WeakMap();
     busy = !ctx.isIdle();
     terminalOnly = 0;
     bridgeError = "";
@@ -230,6 +239,7 @@ export default function companion(pi: ExtensionAPI) {
     context = ctx;
     liveMessage = undefined;
     tools.clear();
+    historyCache = new WeakMap();
     schedule();
   });
   pi.on("agent_start", (_event, ctx) => {

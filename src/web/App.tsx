@@ -6,9 +6,8 @@ import {
   type Session,
   type Snapshot,
 } from "../shared/protocol";
-import { transcriptTools } from "../shared/transcript";
 import { Connection } from "./client";
-import { Content, ToolRow } from "./Transcript";
+import { Transcript } from "./Transcript";
 import { DialogCard } from "./DialogCard";
 
 export function App() {
@@ -168,7 +167,7 @@ export function App() {
     try {
       conn.current?.send({
         type: "command",
-        version: 1,
+        version: 2,
         id,
         paneId: selected,
         generation: snapshot.generation,
@@ -208,11 +207,6 @@ export function App() {
   const attachments = (images[selected] ?? []).filter(
     (i): i is Extract<Block, { type: "image" }> => i.type === "image",
   );
-  const tools = transcriptTools(
-    snapshot?.messages ?? [],
-    snapshot?.tools ?? [],
-  );
-  const rendered = new Set<string>();
   const disabled = !online || !ready || pending;
   const promptDisabled =
     disabled || !!snapshot?.dialogs.length || !!snapshot?.terminalOnly;
@@ -325,37 +319,9 @@ export function App() {
                 </p>
               </div>
             )}
-            {snapshot?.messages.map((m) => {
-              if (
-                m.role === "toolResult" &&
-                m.toolCallId &&
-                rendered.has(m.toolCallId)
-              )
-                return null;
-              return (
-                <article key={m.id} className={`message ${m.role}`}>
-                  <Content
-                    blocks={m.content.filter((p) => p.type !== "toolCall")}
-                  />
-                  {m.content
-                    .filter((p) => p.type === "toolCall")
-                    .map((p) => {
-                      rendered.add(p.id);
-                      const t = tools.get(p.id);
-                      return t ? <ToolRow key={p.id} tool={t} /> : null;
-                    })}
-                </article>
-              );
-            })}
-            {[...tools.values()]
-              .filter(
-                (t) =>
-                  !rendered.has(t.id) &&
-                  !snapshot?.messages.some((m) => m.toolCallId === t.id),
-              )
-              .map((t) => (
-                <ToolRow key={t.id} tool={t} />
-              ))}
+            {snapshot && (
+              <Transcript messages={snapshot.messages} live={snapshot.tools} />
+            )}
             {snapshot?.dialogs.map((d) => (
               <DialogCard
                 key={d.id}

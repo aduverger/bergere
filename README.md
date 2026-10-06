@@ -92,6 +92,19 @@ make stop
 
 `pnpm start` remains the foreground command with explicit environment configuration.
 
+## Updating an existing server
+
+After transferring the updated checkout to EC2:
+
+```sh
+pnpm install --frozen-lockfile
+make build
+make stop
+make start
+```
+
+This release uses browser/companion protocol **2** for incremental transcript updates. Run `/reload` in each **idle** Pi pane to load the rebuilt companion, then refresh the browser. Update all three components together; an older companion cannot attach to the new gateway. Herdr and Pi processes do not need restarting.
+
 ## Behavior
 
 - Desktop workspace sidebar, mobile session drawer, search and activity status.
@@ -102,7 +115,8 @@ make stop
 - Foreground/network recovery reconnects and subscribes for an authoritative snapshot. Commands include attachment generations and IDs. The companion deduplicates during the attachment lifetime. Unacknowledged delivery is reported as uncertain, never replayed automatically.
 - Reloads, active-session changes and branch changes create a fresh generation. A reused pane cannot receive commands intended for its old attachment.
 - Herdr events invalidate discovery snapshots, including `events_lost`. Subscription happens before the initial snapshot.
-- Streaming updates coalesce over 50 ms. Slow browser clients reconnect for fresh state. Transport frames are limited to 32 MiB; browser submissions to 24 MiB encoded, individual images to 10 MiB. No transcripts or command contents are logged by the gateway.
+- Collapsed tool output and reasoning render only when opened. Composer edits do not rerender the transcript. Hashed frontend assets use private immutable caching; HTML and transcripts are not cached offline.
+- Streaming updates send changed message/tool suffixes, preserving unchanged history. Updates coalesce over 50 ms. Slow browser clients reconnect for fresh state. Transport frames are limited to 32 MiB; browser submissions to 24 MiB encoded, individual images to 10 MiB. No transcripts or command contents are logged by the gateway.
 
 ## Validation and remaining deployment checks
 
