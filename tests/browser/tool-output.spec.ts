@@ -7,6 +7,8 @@ import type { Snapshot, Tool } from "../../src/shared/protocol";
 test("tool details preserve source formatting and stay within the mobile viewport", async ({
 	page,
 }, info) => {
+	const command =
+		'set -e\npwd; ls -a /home/ubuntu/.pi/agent; git -C emidat-api status --short && find /tmp /home/ubuntu/.pi -maxdepth 3 -iname "*ship*"; printf "%s\\n" "quoted ; and && remain intact"';
 	const tools: Tool[] = [
 		{
 			id: "read",
@@ -38,6 +40,12 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 				edits: [
 					{ oldText: 'status = "pending"\n', newText: 'status = "delivered"\n' },
 					{ oldText: "attempts = 0\n", newText: "attempts = 1\n" },
+					{
+						oldText:
+							"Add an additive migration, operator documentation, safe structured events, and the callback OpenAPI schema.",
+						newText:
+							"Add an additive migration, operator documentation, redacted structured events, and the callback OpenAPI schema.",
+					},
 				],
 			},
 			status: "success",
@@ -46,7 +54,7 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 		{
 			id: "bash",
 			name: "bash",
-			args: { command: "set -e\nuv run pytest tests/example.py -q", timeout: 120 },
+			args: { command, timeout: 120 },
 			status: "success",
 			content: [{ type: "text", text: "All checks passed!\n43 passed, 389 warnings in 9.39s\n" }],
 		},
@@ -120,26 +128,38 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 			.locator("details.tool")
 			.filter({ has: page.locator("strong", { hasText: tool.name }) });
 		await row.locator("summary").click();
-		await expect(row.locator(".tool-source").first()).toBeVisible();
+		await expect(row.locator(".tool-source, .edit-diff").first()).toBeVisible();
 		await expect(row.locator(".tool-body")).not.toContainText('"path":');
 	}
 	expect(requests).toBe(4);
-	await expect(page.getByRole("region", { name: "Shell command" })).toHaveText(
-		"set -e\nuv run pytest tests/example.py -q",
+	const shell = page.getByRole("region", { name: "Shell command" }).locator("pre");
+	expect(await shell.textContent()).toBe(command);
+	await expect(shell).toHaveCSS("white-space", "pre-wrap");
+	expect(await shell.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
+	await expect(page.getByRole("region", { name: "Tool output" }).locator("pre")).toHaveCSS(
+		"white-space",
+		"pre",
 	);
-	await expect(page.getByRole("region", { name: "Replacement 2", exact: true })).toContainText(
+	await expect(page.getByRole("region", { name: "Change 2", exact: true })).toContainText(
 		"+attempts = 1",
 	);
-	await expect(page.locator(".hljs-deletion").first()).toContainText('-status = "pending"');
+	await expect(page.locator(".diff-removed").first()).toContainText('−status = "pending"');
 	await expect(page.getByRole("region", { name: "File content" }).first()).toContainText(
 		"    assert result.status",
 	);
+	await expect(page.locator(".diff-word").filter({ hasText: "redacted" })).toBeVisible();
+	await expect(
+		page.locator(".tool-body").filter({ has: page.locator(".edit-diff") }),
+	).not.toContainText("No newline");
+	const diffOverflow = await page
+		.locator(".edit-diff")
+		.evaluateAll((elements) => elements.some((el) => el.scrollWidth > el.clientWidth));
+	expect(diffOverflow).toBe(false);
 	const overflow = await page.locator(".history").evaluate((el) => el.scrollWidth > el.clientWidth);
 	expect(overflow).toBe(false);
 	await page
 		.locator("details.tool")
-		.filter({ hasText: "tests/example.py" })
-		.first()
+		.filter({ has: page.locator("strong", { hasText: "bash" }) })
 		.scrollIntoViewIfNeeded();
-	await page.screenshot({ path: `test-results/${info.project.name}-tool-output.png` });
+	await page.screenshot({ path: `test-results/${info.project.name}-bash-wrap.png` });
 });

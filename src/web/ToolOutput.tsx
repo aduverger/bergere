@@ -1,8 +1,8 @@
-import { createTwoFilesPatch } from "diff";
 import { common, createLowlight } from "lowlight";
 import { memo, type ReactNode } from "react";
 import type { Tool } from "../shared/protocol";
 import { record } from "../shared/transcript";
+import { EditDiff } from "./EditDiff";
 
 const highlighter = createLowlight(common);
 const extensions: Record<string, string> = {
@@ -53,10 +53,12 @@ const Source = memo(function Source({
 	text,
 	language = "plaintext",
 	label,
+	wrap = false,
 }: {
 	text: string;
 	language?: string;
 	label: string;
+	wrap?: boolean;
 }) {
 	// Large outputs remain readable without blocking the UI on syntax analysis.
 	const highlighted =
@@ -66,13 +68,13 @@ const Source = memo(function Source({
 	return (
 		<section aria-label={label}>
 			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollable source must support keyboard scrolling. */}
-			<pre className="tool-source" tabIndex={0}>
+			<pre className={`tool-source${wrap ? " tool-source-wrap" : ""}`} tabIndex={0}>
 				<code>{highlighted}</code>
 			</pre>
 		</section>
 	);
 });
-function EditPreview({ args, language }: { args: Record<string, unknown>; language: string }) {
+function EditPreview({ args }: { args: Record<string, unknown> }) {
 	const edits = Array.isArray(args.edits) ? args.edits : [args];
 	if (
 		!edits.every(
@@ -85,27 +87,12 @@ function EditPreview({ args, language }: { args: Record<string, unknown>; langua
 		<>
 			{edits.map((edit, index) => {
 				const { oldText, newText } = record(edit) as { oldText: string; newText: string };
-				const patch = createTwoFilesPatch(
-					"before",
-					"after",
-					oldText,
-					newText,
-					undefined,
-					undefined,
-					{ context: 3, timeout: 50 },
-				);
+
 				return (
 					// biome-ignore lint/suspicious/noArrayIndexKey: Replacement blocks are ordered immutable tool arguments.
-					<section key={index}>
-						<div className="tool-section-label">Replacement {index + 1} · snippet lines</div>
-						{patch ? (
-							<Source text={patch} language="diff" label={`Replacement ${index + 1}`} />
-						) : (
-							<>
-								<Source text={oldText} language={language} label="Before" />
-								<Source text={newText} language={language} label="After" />
-							</>
-						)}
+					<section key={index} aria-label={`Change ${index + 1}`}>
+						{edits.length > 1 && <div className="tool-section-label">Change {index + 1}</div>}
+						<EditDiff before={oldText} after={newText} />
 					</section>
 				);
 			})}
@@ -122,7 +109,10 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 		tool.content.some((block) => block.type !== "text" && block.type !== "image")
 	)
 		return children;
-	const output = tool.name === "write" && tool.status === "success" ? [] : tool.content;
+	const output =
+		(tool.name === "write" || tool.name === "edit") && tool.status === "success"
+			? []
+			: tool.content;
 	return (
 		<>
 			{tool.name === "read" && typeof args.offset === "number" && (
@@ -135,14 +125,14 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 				<Source text={args.content} language={language} label="File content" />
 			)}
 			{tool.name === "bash" && typeof args.command === "string" && (
-				<Source text={args.command} language="bash" label="Shell command" />
+				<Source text={args.command} language="bash" label="Shell command" wrap />
 			)}
 			{tool.name === "edit" && (
 				<>
 					<div className="tool-section-label">
 						Requested changes{tool.status === "error" ? " · tool failed" : ""}
 					</div>
-					<EditPreview args={args} language={language} />
+					<EditPreview args={args} />
 				</>
 			)}
 			{output.length > 0 && tool.name !== "read" && (

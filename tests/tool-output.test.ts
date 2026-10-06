@@ -58,12 +58,40 @@ describe("tool presentation", () => {
 			{ path: "file.py", ...edit },
 			{ path: "file.py", edits: [edit, edit] },
 		]) {
+			const success = render("edit", args, "Successfully replaced 1 block(s) in file.py.");
+			expect(success).toContain(">old</span>");
+			expect(success).toContain(">new</span>");
+			expect(success).not.toContain("Successfully replaced");
+			expect(success).not.toContain('aria-label="Tool output"');
 			const html = render("edit", args, "Replacement failed", "error");
-			expect(html).toContain("hljs-deletion");
-			expect(html).toContain("-old");
-			expect(html).toContain("+new");
+			expect(html).toContain("diff-removed");
+			expect(html).toContain(">old</span>");
+			expect(html).toContain(">new</span>");
 			expect(html).toContain("Requested changes · tool failed");
 			expect(html).toContain("Replacement failed");
+		}
+	});
+	it("highlights changed words without patch headers or snippet EOF warnings", () => {
+		const html = render(
+			"edit",
+			{ oldText: "Add safe logs and tests.", newText: "Add structured logs and tests." },
+			"",
+		);
+		expect(html).toContain('<span class="diff-word">safe</span>');
+		expect(html).toContain('<span class="diff-word">structured</span>');
+		expect(html).not.toContain("@@");
+		expect(html).not.toContain("No newline");
+		expect(html).not.toContain("--- before");
+		expect(html).not.toContain('class="tool-section-label">Change 1');
+	});
+	it("preserves blank lines, indentation, additions and deletions", () => {
+		for (const [oldText, newText] of [
+			["", "  added\n\n"],
+			["  deleted\n\n", ""],
+		]) {
+			const html = render("edit", { oldText, newText }, "");
+			expect(html.match(/class="diff-row /g)).toHaveLength(2);
+			expect(html).toContain(oldText ? "  deleted" : "  added");
 		}
 	});
 	it("keeps shell commands separate from literal output", () => {

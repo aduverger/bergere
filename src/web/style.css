@@ -583,6 +583,10 @@ button > .lucide {
 	margin: 8px 0;
 	border: 1px solid #302d29;
 }
+.tool-source-wrap {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
 .tool-source code {
 	font-size: inherit;
 }
@@ -619,4 +623,56 @@ button > .lucide {
 .hljs-deletion {
 	color: #f0b7b0;
 	background: #512d2c;
+}
+
+.edit-diff {
+	margin: 8px 0;
+	border: 1px solid #393632;
+	border-radius: 8px;
+	overflow: hidden;
+	font-size: 12px;
+	line-height: 1.7;
+	tab-size: 4;
+}
+.diff-row {
+	display: grid;
+	grid-template-columns: 28px minmax(0, 1fr);
+	min-height: 1.7em;
+}
+.diff-row code {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	padding: 2px 10px 2px 0;
+	font-size: inherit;
+}
+.diff-sign {
+	padding: 2px 0;
+	text-align: center;
+	user-select: none;
+	opacity: 0.7;
+}
+.diff-removed {
+	background: #442c2b;
+	color: #ecc5c0;
+}
+.diff-added {
+	background: #253b2d;
+	color: #c6dfc8;
+}
+.diff-context {
+	background: #1b1a18;
+	color: #aaa094;
+}
+.diff-word {
+	border-radius: 2px;
+}
+.diff-removed .diff-word {
+	background: #7b3c38;
+}
+.diff-added .diff-word {
+	background: #396745;
+}
+.diff-note {
+	padding: 8px 12px;
+	color: #aaa094;
 }
