@@ -27,6 +27,7 @@
 		]
 	},
 	"dependencies": {
+		"acorn": "^8.19.0",
 		"diff": "^9.0.0",
 		"effect": "4.0.1",
 		"lowlight": "^3.3.0",

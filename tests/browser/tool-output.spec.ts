@@ -152,7 +152,7 @@ for (const nested of [false, true])
 					"text(await",
 				);
 				await row.locator(".codemode-script summary").click();
-				await expect(row.getByRole("region", { name: "Script output" })).toHaveText(
+				await expect(row.getByRole("region", { name: "Output" })).toHaveText(
 					"# Literal output\n  indented",
 				);
 				continue;

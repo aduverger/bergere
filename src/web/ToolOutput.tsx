@@ -1,6 +1,8 @@
-import { memo, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
+import { memo, type ReactNode, useState } from "react";
 import type { Tool } from "../shared/protocol";
 import { record } from "../shared/transcript";
+import { codemodeOutputs } from "./codemode";
 import { EditDiff } from "./EditDiff";
 import { fileLanguage, highlightSource } from "./syntax";
 
@@ -50,7 +52,93 @@ function EditPreview({ args, language }: { args: Record<string, unknown>; langua
 		</>
 	);
 }
-export default function ToolOutput({ tool, children }: { tool: Tool; children?: ReactNode }) {
+function MappedTool({ tool }: { tool: Tool }) {
+	const [open, setOpen] = useState(false);
+	const args = record(tool.args);
+	return (
+		<details
+			className={`tool ${tool.status}`}
+			onToggle={(event) => {
+				if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
+			}}
+		>
+			<summary>
+				<strong>{tool.name}</strong>
+				<span className="tool-label">{String(args.path ?? args.command ?? "")}</span>
+				<span>›</span>
+			</summary>
+			{open && (
+				<div className="tool-body">
+					<ToolOutput tool={tool}>
+						<Source
+							text={tool.content
+								.filter((b) => b.type === "text")
+								.map((b) => b.text)
+								.join("\n")}
+							label="Tool output"
+						/>
+					</ToolOutput>
+				</div>
+			)}
+		</details>
+	);
+}
+function CodemodeOutput({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: boolean }) {
+	const args = record(tool.args);
+	const mapped = hasNestedCalls ? undefined : codemodeOutputs(tool);
+	return (
+		<>
+			{mapped && (
+				<div className="codemode-outputs">
+					{mapped.map((output) => (
+						<MappedTool key={output.id} tool={output} />
+					))}
+				</div>
+			)}
+			<details className="codemode-script">
+				<summary>
+					<ChevronRight size={16} aria-hidden="true" />
+					Script
+				</summary>
+				<Source
+					text={
+						typeof args.code === "string"
+							? args.code
+							: typeof tool.args === "string"
+								? tool.args
+								: JSON.stringify(tool.args ?? {}, null, 2)
+					}
+					language="javascript"
+					label="Script"
+					wrap
+				/>
+			</details>
+			{mapped && (
+				<div className="tool-section-label">Outputs matched to sequential calls in the script.</div>
+			)}
+			{!mapped && tool.content.length > 0 && <div className="tool-section-label">Output</div>}
+			{(mapped ? tool.content.slice(0, 1) : tool.content).map((block, index) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: Script output blocks retain their order.
+				<div key={index}>
+					{block.type === "text" ? (
+						<Source text={block.text} label="Output" />
+					) : block.type === "image" ? (
+						<img src={`data:${block.mimeType};base64,${block.data}`} alt="Output" />
+					) : null}
+				</div>
+			))}
+		</>
+	);
+}
+export default function ToolOutput({
+	tool,
+	children,
+	hasNestedCalls = false,
+}: {
+	tool: Tool;
+	children?: ReactNode;
+	hasNestedCalls?: boolean;
+}) {
 	const args = record(tool.args);
 	const language = fileLanguage(typeof args.path === "string" ? args.path : "");
 	if (
@@ -61,36 +149,7 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 	)
 		return children;
 	if (tool.name === "codemode")
-		return (
-			<>
-				<details className="codemode-script">
-					<summary>Script</summary>
-					<Source
-						text={
-							typeof args.code === "string"
-								? args.code
-								: typeof tool.args === "string"
-									? tool.args
-									: JSON.stringify(tool.args ?? {}, null, 2)
-						}
-						language="javascript"
-						label="Script"
-						wrap
-					/>
-				</details>
-				{tool.content.length > 0 && <div className="tool-section-label">Script output</div>}
-				{tool.content.map((block, index) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: Script output blocks retain their order.
-					<div key={index}>
-						{block.type === "text" ? (
-							<Source text={block.text} label="Script output" />
-						) : block.type === "image" ? (
-							<img src={`data:${block.mimeType};base64,${block.data}`} alt="Script output" />
-						) : null}
-					</div>
-				))}
-			</>
-		);
+		return <CodemodeOutput tool={tool} hasNestedCalls={hasNestedCalls} />;
 	const output =
 		(tool.name === "write" || tool.name === "edit") && tool.status === "success"
 			? []
@@ -111,9 +170,7 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 			)}
 			{tool.name === "edit" && (
 				<>
-					<div className="tool-section-label">
-						Requested changes{tool.status === "error" ? " · tool failed" : ""}
-					</div>
+					{tool.status === "error" && <div className="tool-section-label">Tool failed</div>}
 					<EditPreview args={args} language={language} />
 				</>
 			)}

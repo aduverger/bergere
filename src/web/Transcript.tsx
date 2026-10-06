@@ -77,14 +77,14 @@ function ToolRow({ tool }: { tool: TranscriptTool }) {
 						<p className="tool-section-label">Pi saved an incomplete child-call trace.</p>
 					)}
 					{tool.children.length > 0 && <Activity tools={tool.children} />}
-					<ToolDetails tool={tool} />
+					<ToolDetails tool={tool} hasNestedCalls={tool.children.length > 0} />
 				</div>
 			)}
 		</details>
 	);
 }
 
-function ToolDetails({ tool }: { tool: Tool }) {
+function ToolDetails({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: boolean }) {
 	const { paneId, generation } = useContext(ToolContext);
 	const [loaded, setLoaded] = useState<Tool>();
 	const [error, setError] = useState("");
@@ -136,7 +136,7 @@ function ToolDetails({ tool }: { tool: Tool }) {
 					{detail.args === undefined ? "Arguments are also unavailable." : ""}
 				</p>
 			)}
-			<ToolOutput tool={detail}>
+			<ToolOutput tool={detail} hasNestedCalls={hasNestedCalls}>
 				<pre>{JSON.stringify(detail.args, null, 2)}</pre>
 				<Content blocks={detail.content} />
 			</ToolOutput>

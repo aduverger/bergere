@@ -704,3 +704,10 @@ button > .lucide {
 .diff-modified .diff-word {
 	background: #36594090;
 }
+
+.codemode-script > summary > svg {
+	flex-shrink: 0;
+}
+.codemode-script[open] > summary > svg {
+	transform: rotate(90deg);
+}

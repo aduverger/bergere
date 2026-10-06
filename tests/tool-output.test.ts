@@ -66,7 +66,7 @@ describe("tool presentation", () => {
 			const html = render("edit", args, "Replacement failed", "error");
 			expect(html).toContain("diff-modified");
 			expect(html).toContain("new");
-			expect(html).toContain("Requested changes · tool failed");
+			expect(html).toContain("Tool failed");
 			expect(html).toContain("Replacement failed");
 		}
 	});
