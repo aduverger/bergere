@@ -353,12 +353,20 @@ header small {
   position: relative;
 }
 .composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
   background: #24211e;
   border: 1px solid #37312b;
   border-radius: 20px;
   padding: 12px;
 }
+.composer > .attachments {
+  grid-column: 1 / -1;
+}
 .composer > textarea {
+  height: 34px;
   background: transparent;
   border: 0;
   width: 100%;
@@ -367,8 +375,19 @@ header small {
   resize: none;
   max-height: 180px;
 }
-.controls {
+.composer:focus-within > textarea {
+  grid-column: 1 / -1;
+  height: 76px;
+}
+.composer .controls {
+  display: contents;
+}
+.composer:not(:focus-within) .controls > :is(select, .subtle, .spacer) {
+  display: none;
+}
+.composer:focus-within .controls {
   display: flex;
+  grid-column: 1 / -1;
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;

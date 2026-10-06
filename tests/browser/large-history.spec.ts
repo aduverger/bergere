@@ -16,7 +16,7 @@ import {
 
 test("large history keeps collapsed output unmounted and typing responsive", async ({
   page,
-}) => {
+}, info) => {
   const messages: Message[] = [];
   const output =
     "## Output\n\n" +
@@ -174,6 +174,27 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     const loaded = Date.now() - started;
     const count = await page.locator("*").count();
     expect(count).toBeLessThan(5000);
+    const composer = page.locator(".composer");
+    const input = page.getByRole("textbox", { name: "Message", exact: true });
+    await page.locator("header").click();
+    await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
+    const compactHeight = (await composer.boundingBox())!.height;
+    await composer.screenshot({
+      path: `test-results/${info.project.name}-composer-compact.png`,
+    });
+    await input.click();
+    await expect(page.getByLabel("Model", { exact: true })).toBeVisible();
+    expect((await composer.boundingBox())!.height).toBeGreaterThan(
+      compactHeight,
+    );
+    await composer.screenshot({
+      path: `test-results/${info.project.name}-composer-expanded.png`,
+    });
+    await page.getByLabel("Model", { exact: true }).focus();
+    await expect(
+      page.getByLabel("Thinking level", { exact: true }),
+    ).toBeVisible();
+    await input.focus();
     const typing = Date.now();
     await page
       .getByRole("textbox", { name: "Message", exact: true })
@@ -182,6 +203,12 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     await expect(
       page.getByRole("textbox", { name: "Message", exact: true }),
     ).toHaveValue("A responsive composer with a large conversation");
+    await page.locator("header").click();
+    await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
+    await expect(input).toHaveValue(
+      "A responsive composer with a large conversation",
+    );
+    expect((await composer.boundingBox())!.height).toBe(compactHeight);
     const next = {
       ...state,
       revision: 2,

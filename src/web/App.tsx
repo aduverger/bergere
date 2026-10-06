@@ -436,7 +436,7 @@ export function App() {
               onChange={(e) =>
                 setDrafts((all) => ({ ...all, [selected]: e.target.value }))
               }
-              rows={2}
+              rows={1}
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&
@@ -544,11 +544,11 @@ export function App() {
               </button>
             </div>
           </form>
-          <div className="caption">
-            {pending
-              ? "Waiting for acknowledgement…"
-              : "Same Pi process · managed by Herdr"}
-          </div>
+          {pending && (
+            <div className="caption" role="status">
+              Waiting for acknowledgement…
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -140,6 +140,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await expect(
       page.getByText("Custom widget finished", { exact: true }),
     ).toBeVisible();
+    await page.getByRole("textbox", { name: "Message", exact: true }).focus();
     await page
       .getByLabel("Model", { exact: true })
       .selectOption("pmh-test/alternate");
@@ -169,6 +170,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await expect(
       page.getByRole("img", { name: "Message attachment", exact: true }),
     ).toHaveCount(1);
+    await page.getByRole("textbox", { name: "Message", exact: true }).focus();
     await page
       .getByLabel("Thinking level", { exact: true })
       .selectOption("high");
@@ -183,6 +185,7 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       await page
         .getByRole("button", { name: "Send message", exact: true })
         .click();
+      await page.getByRole("textbox", { name: "Message", exact: true }).focus();
       await page.getByLabel("Delivery", { exact: true }).selectOption(delivery);
       await page
         .getByRole("textbox", { name: "Message", exact: true })
@@ -233,6 +236,8 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
     await page
       .getByRole("button", { name: "Send message", exact: true })
       .click();
+    await page.locator("header").click();
+    await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
     await page.getByRole("button", { name: "Stop", exact: true }).click();
     await expect(page.getByText("Ready", { exact: true })).toBeVisible();
     await connectWire();
