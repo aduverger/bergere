@@ -41,7 +41,12 @@ export function App() {
     const c = new Connection(
       (msg) => {
         if (msg.type === "sessions") {
-          setSessions(msg.sessions);
+          setSessions(
+            msg.sessions.map((session) => ({
+              ...session,
+              title: session.title.replace(/^π(?=\s|$)/u, "Pi"),
+            })),
+          );
           if (msg.error) {
             setReady(false);
             setNotice(msg.error);
