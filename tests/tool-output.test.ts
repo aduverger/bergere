@@ -59,14 +59,14 @@ describe("tool presentation", () => {
 			{ path: "file.py", edits: [edit, edit] },
 		]) {
 			const success = render("edit", args, "Successfully replaced 1 block(s) in file.py.");
-			expect(success).toContain(">old</span>");
-			expect(success).toContain(">new</span>");
+			expect(success).toContain("old");
+			expect(success).toContain("new");
 			expect(success).not.toContain("Successfully replaced");
 			expect(success).not.toContain('aria-label="Tool output"');
 			const html = render("edit", args, "Replacement failed", "error");
 			expect(html).toContain("diff-removed");
-			expect(html).toContain(">old</span>");
-			expect(html).toContain(">new</span>");
+			expect(html).toContain("old");
+			expect(html).toContain("new");
 			expect(html).toContain("Requested changes · tool failed");
 			expect(html).toContain("Replacement failed");
 		}
@@ -90,6 +90,7 @@ describe("tool presentation", () => {
 			["  deleted\n\n", ""],
 		]) {
 			const html = render("edit", { oldText, newText }, "");
+			expect(html).not.toContain("diff-word");
 			expect(html.match(/class="diff-row /g)).toHaveLength(2);
 			expect(html).toContain(oldText ? "  deleted" : "  added");
 		}

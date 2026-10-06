@@ -638,6 +638,8 @@ button > .lucide {
 	display: grid;
 	grid-template-columns: 28px minmax(0, 1fr);
 	min-height: 1.7em;
+	background: #1b1a18;
+	border-left: 2px solid transparent;
 }
 .diff-row code {
 	white-space: pre-wrap;
@@ -652,25 +654,29 @@ button > .lucide {
 	opacity: 0.7;
 }
 .diff-removed {
-	background: #442c2b;
-	color: #ecc5c0;
+	border-left-color: #b87973;
+}
+.diff-removed .diff-sign {
+	color: #db9992;
 }
 .diff-added {
-	background: #253b2d;
-	color: #c6dfc8;
+	border-left-color: #739d7d;
+}
+.diff-added .diff-sign {
+	color: #96bd9d;
 }
 .diff-context {
 	background: #1b1a18;
-	color: #aaa094;
+	color: inherit;
 }
 .diff-word {
 	border-radius: 2px;
 }
 .diff-removed .diff-word {
-	background: #7b3c38;
+	background: #613b3880;
 }
 .diff-added .diff-word {
-	background: #396745;
+	background: #36594090;
 }
 .diff-note {
 	padding: 8px 12px;

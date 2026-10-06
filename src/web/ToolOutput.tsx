@@ -1,54 +1,9 @@
-import { common, createLowlight } from "lowlight";
 import { memo, type ReactNode } from "react";
 import type { Tool } from "../shared/protocol";
 import { record } from "../shared/transcript";
 import { EditDiff } from "./EditDiff";
+import { fileLanguage, highlightSource } from "./syntax";
 
-const highlighter = createLowlight(common);
-const extensions: Record<string, string> = {
-	py: "python",
-	ts: "typescript",
-	tsx: "typescript",
-	js: "javascript",
-	jsx: "javascript",
-	mjs: "javascript",
-	cjs: "javascript",
-	md: "markdown",
-	yml: "yaml",
-	sh: "bash",
-	zsh: "bash",
-	html: "xml",
-	svg: "xml",
-	h: "c",
-	rs: "rust",
-	rb: "ruby",
-	cs: "csharp",
-	diff: "diff",
-	patch: "diff",
-	txt: "plaintext",
-	log: "plaintext",
-};
-function fileLanguage(path: string) {
-	const name = path.split("/").at(-1)?.toLowerCase() ?? "";
-	if (name === "dockerfile") return "dockerfile";
-	if (name === "makefile") return "makefile";
-	const extension = name.split(".").at(-1) ?? "";
-	const language = extensions[extension] ?? extension;
-	return highlighter.registered(language) ? language : "plaintext";
-}
-type HighlightNode = ReturnType<typeof highlighter.highlight>["children"][number];
-function tokens(nodes: HighlightNode[]): ReactNode {
-	return nodes.map((node, index) => {
-		if (node.type === "text") return node.value;
-		if (node.type !== "element") return null;
-		return (
-			// biome-ignore lint/suspicious/noArrayIndexKey: Highlight tokens are stateless positions in the source.
-			<span key={index} className={String(node.properties.className ?? "").replaceAll(",", " ")}>
-				{tokens(node.children)}
-			</span>
-		);
-	});
-}
 const Source = memo(function Source({
 	text,
 	language = "plaintext",
@@ -60,11 +15,7 @@ const Source = memo(function Source({
 	label: string;
 	wrap?: boolean;
 }) {
-	// Large outputs remain readable without blocking the UI on syntax analysis.
-	const highlighted =
-		text.length <= 100_000 && language !== "plaintext"
-			? tokens(highlighter.highlight(language, text).children)
-			: text;
+	const highlighted = highlightSource(text, language);
 	return (
 		<section aria-label={label}>
 			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: Scrollable source must support keyboard scrolling. */}
@@ -74,7 +25,7 @@ const Source = memo(function Source({
 		</section>
 	);
 });
-function EditPreview({ args }: { args: Record<string, unknown> }) {
+function EditPreview({ args, language }: { args: Record<string, unknown>; language: string }) {
 	const edits = Array.isArray(args.edits) ? args.edits : [args];
 	if (
 		!edits.every(
@@ -92,7 +43,7 @@ function EditPreview({ args }: { args: Record<string, unknown> }) {
 					// biome-ignore lint/suspicious/noArrayIndexKey: Replacement blocks are ordered immutable tool arguments.
 					<section key={index} aria-label={`Change ${index + 1}`}>
 						{edits.length > 1 && <div className="tool-section-label">Change {index + 1}</div>}
-						<EditDiff before={oldText} after={newText} />
+						<EditDiff before={oldText} after={newText} language={language} />
 					</section>
 				);
 			})}
@@ -132,7 +83,7 @@ export default function ToolOutput({ tool, children }: { tool: Tool; children?: 
 					<div className="tool-section-label">
 						Requested changes{tool.status === "error" ? " · tool failed" : ""}
 					</div>
-					<EditPreview args={args} />
+					<EditPreview args={args} language={language} />
 				</>
 			)}
 			{output.length > 0 && tool.name !== "read" && (

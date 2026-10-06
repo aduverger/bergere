@@ -41,6 +41,11 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 					{ oldText: 'status = "pending"\n', newText: 'status = "delivered"\n' },
 					{ oldText: "attempts = 0\n", newText: "attempts = 1\n" },
 					{
+						oldText: "",
+						newText:
+							'def handle_cancel():\n    if is_new:\n        navigate("/elementaries")\n    else:\n        reset()\n',
+					},
+					{
 						oldText:
 							"Add an additive migration, operator documentation, safe structured events, and the callback OpenAPI schema.",
 						newText:
@@ -151,6 +156,13 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 	await expect(
 		page.locator(".tool-body").filter({ has: page.locator(".edit-diff") }),
 	).not.toContainText("No newline");
+	const addedBlock = page.getByRole("region", { name: "Change 3", exact: true });
+	await expect(addedBlock.locator(".diff-word")).toHaveCount(0);
+	await expect(addedBlock.locator(".hljs-keyword").first()).toBeVisible();
+	await expect(addedBlock.locator(".diff-row").first()).toHaveCSS(
+		"background-color",
+		"rgb(27, 26, 24)",
+	);
 	const diffOverflow = await page
 		.locator(".edit-diff")
 		.evaluateAll((elements) => elements.some((el) => el.scrollWidth > el.clientWidth));
@@ -159,7 +171,7 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 	expect(overflow).toBe(false);
 	await page
 		.locator("details.tool")
-		.filter({ has: page.locator("strong", { hasText: "bash" }) })
+		.filter({ has: page.locator("strong", { hasText: "edit" }) })
 		.scrollIntoViewIfNeeded();
-	await page.screenshot({ path: `test-results/${info.project.name}-bash-wrap.png` });
+	await page.screenshot({ path: `test-results/${info.project.name}-neutral-diff.png` });
 });

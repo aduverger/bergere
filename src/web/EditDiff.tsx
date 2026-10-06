@@ -1,11 +1,12 @@
 import { type Change, diffLines, diffWordsWithSpace } from "diff";
 import { memo } from "react";
+import { highlightSource } from "./syntax";
 
 type DiffPart = Pick<Change, "value" | "removed" | "added">;
 type DiffKind = "removed" | "added" | "context";
 type DiffRow = { kind: DiffKind; parts: { text: string; changed: boolean }[] };
 
-function lines(parts: DiffPart[], kind: DiffKind): DiffRow[] {
+function lines(parts: DiffPart[], kind: DiffKind, highlight = false): DiffRow[] {
 	const rows: DiffRow[] = [];
 	let row: DiffRow = { kind, parts: [] };
 	for (const part of parts) {
@@ -15,7 +16,11 @@ function lines(parts: DiffPart[], kind: DiffKind): DiffRow[] {
 				rows.push(row);
 				row = { kind, parts: [] };
 			}
-			if (text) row.parts.push({ text, changed: part.added || part.removed });
+			if (text)
+				row.parts.push({
+					text,
+					changed: highlight && (part.added || part.removed) && text.trim().length > 0,
+				});
 		}
 	}
 	if (row.parts.length) rows.push(row);
@@ -28,10 +33,12 @@ function changedRows(before: DiffPart, after: DiffPart): DiffRow[] {
 		...lines(
 			words.filter((part) => !part.added),
 			"removed",
+			true,
 		),
 		...lines(
 			words.filter((part) => !part.removed),
 			"added",
+			true,
 		),
 	];
 }
@@ -56,12 +63,23 @@ function diffRows(before: string, after: string): DiffRow[] {
 	}
 	return rows;
 }
+function highlightRow(row: DiffRow, language: string) {
+	let offset = 0;
+	const ranges: [number, number][] = [];
+	for (const part of row.parts) {
+		if (part.changed) ranges.push([offset, offset + part.text.length]);
+		offset += part.text.length;
+	}
+	return highlightSource(row.parts.map((part) => part.text).join(""), language, ranges);
+}
 export const EditDiff = memo(function EditDiff({
 	before,
 	after,
+	language,
 }: {
 	before: string;
 	after: string;
+	language: string;
 }) {
 	const rows = diffRows(before, after);
 	return (
@@ -78,14 +96,7 @@ export const EditDiff = memo(function EditDiff({
 					>
 						{row.kind === "removed" ? "−" : row.kind === "added" ? "+" : " "}
 					</span>
-					<code>
-						{row.parts.map((part, partIndex) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: Word tokens are stateless positions within a diff row.
-							<span key={partIndex} className={part.changed ? "diff-word" : undefined}>
-								{part.text}
-							</span>
-						))}
-					</code>
+					<code>{highlightRow(row, language)}</code>
 				</div>
 			))}
 			{before === after && <div className="diff-note">No changes</div>}
