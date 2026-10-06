@@ -59,13 +59,12 @@ describe("tool presentation", () => {
 			{ path: "file.py", edits: [edit, edit] },
 		]) {
 			const success = render("edit", args, "Successfully replaced 1 block(s) in file.py.");
-			expect(success).toContain("old");
+			expect(success).toContain("Expand modified line");
 			expect(success).toContain("new");
 			expect(success).not.toContain("Successfully replaced");
 			expect(success).not.toContain('aria-label="Tool output"');
 			const html = render("edit", args, "Replacement failed", "error");
-			expect(html).toContain("diff-removed");
-			expect(html).toContain("old");
+			expect(html).toContain("diff-modified");
 			expect(html).toContain("new");
 			expect(html).toContain("Requested changes · tool failed");
 			expect(html).toContain("Replacement failed");
@@ -77,12 +76,27 @@ describe("tool presentation", () => {
 			{ oldText: "Add safe logs and tests.", newText: "Add structured logs and tests." },
 			"",
 		);
-		expect(html).toContain('<span class="diff-word">safe</span>');
+		expect(html).not.toContain('<span class="diff-word">safe</span>');
 		expect(html).toContain('<span class="diff-word">structured</span>');
 		expect(html).not.toContain("@@");
 		expect(html).not.toContain("No newline");
 		expect(html).not.toContain("--- before");
 		expect(html).not.toContain('class="tool-section-label">Change 1');
+	});
+	it("keeps ambiguous multiline replacements fully visible", () => {
+		const html = render("edit", { oldText: "one\ntwo\n", newText: "three\nfour\n" }, "");
+		expect(html).not.toContain("Expand modified line");
+		expect(html).toContain("diff-removed");
+		expect(html).toContain("diff-added");
+	});
+	it("keeps a compact toggle for a removed word even without a new highlighted word", () => {
+		const html = render(
+			"edit",
+			{ oldText: "if (!valid) submit();", newText: "if (valid) submit();" },
+			"",
+		);
+		expect(html).toContain("Expand modified line");
+		expect(html).toContain("if (valid) submit();");
 	});
 	it("preserves blank lines, indentation, additions and deletions", () => {
 		for (const [oldText, newText] of [

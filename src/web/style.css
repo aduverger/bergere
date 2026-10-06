@@ -636,7 +636,7 @@ button > .lucide {
 }
 .diff-row {
 	display: grid;
-	grid-template-columns: 28px minmax(0, 1fr);
+	grid-template-columns: 36px minmax(0, 1fr);
 	min-height: 1.7em;
 	background: #1b1a18;
 	border-left: 2px solid transparent;
@@ -681,4 +681,26 @@ button > .lucide {
 .diff-note {
 	padding: 8px 12px;
 	color: #aaa094;
+}
+
+.diff-row button.diff-sign {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	font-family: ui-monospace, monospace;
+	min-height: 32px;
+	outline-offset: -2px;
+}
+.diff-row button.diff-sign:hover {
+	background: #ffffff0a;
+	opacity: 1;
+}
+.diff-modified {
+	border-left-color: #b69870;
+}
+.diff-modified .diff-sign {
+	color: #d6b58b;
+}
+.diff-modified .diff-word {
+	background: #36594090;
 }

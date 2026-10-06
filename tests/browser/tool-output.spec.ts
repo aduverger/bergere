@@ -146,9 +146,23 @@ test("tool details preserve source formatting and stay within the mobile viewpor
 		"pre",
 	);
 	await expect(page.getByRole("region", { name: "Change 2", exact: true })).toContainText(
-		"+attempts = 1",
+		"~attempts = 1",
 	);
-	await expect(page.locator(".diff-removed").first()).toContainText('−status = "pending"');
+	const change = page.getByRole("region", { name: "Change 1", exact: true });
+	const expand = change.getByRole("button", { name: "Expand modified line" });
+	await expect(change).not.toContainText("pending");
+	await expand.click();
+	await expect(change.locator(".diff-row")).toHaveCount(2);
+	await expect(change.locator(".diff-removed")).toContainText('−status = "pending"');
+	const collapseRemoved = change.getByRole("button", { name: "Collapse removed line" });
+	await expect(collapseRemoved).toBeFocused();
+	await collapseRemoved.press("Enter");
+	await expect(expand).toBeFocused();
+	await expect(change.locator(".diff-row")).toHaveCount(1);
+	await expand.press("Enter");
+	await change.getByRole("button", { name: "Collapse added line" }).click();
+	await expect(expand).toBeFocused();
+	await expect(change).not.toContainText("pending");
 	await expect(page.getByRole("region", { name: "File content" }).first()).toContainText(
 		"    assert result.status",
 	);
