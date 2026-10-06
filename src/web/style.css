@@ -15,6 +15,13 @@
 * {
   box-sizing: border-box;
 }
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 body {
   margin: 0;
   overflow: hidden;
@@ -93,6 +100,10 @@ img {
   border-radius: 10px;
 }
 .app {
+  position: fixed;
+  top: var(--app-top, 0px);
+  left: 0;
+  width: 100%;
   display: flex;
   height: var(--app-height);
   padding-top: env(safe-area-inset-top);
@@ -209,6 +220,7 @@ main {
   position: relative;
 }
 header {
+  flex-shrink: 0;
   min-height: 66px;
   border-bottom: 1px solid #25231f;
   display: flex;
@@ -238,6 +250,7 @@ header small {
   font-size: 11px;
 }
 .history {
+  min-height: 0;
   flex: 1;
   overflow: auto;
   overscroll-behavior: contain;
@@ -346,6 +359,7 @@ header small {
   font-size: 13px;
 }
 .compose-area {
+  flex-shrink: 0;
   width: 100%;
   max-width: 788px;
   padding: 8px 24px max(10px, env(safe-area-inset-bottom));
@@ -377,7 +391,7 @@ header small {
 }
 .composer:focus-within > textarea {
   grid-column: 1 / -1;
-  height: 76px;
+  height: 40px;
 }
 .composer .controls {
   display: contents;
@@ -494,6 +508,9 @@ header small {
     transform: translateX(-100%);
     transition: transform 0.15s;
   }
+  .sidebar:not(.open) {
+    visibility: hidden;
+  }
   .sidebar.open {
     transform: translateX(0);
   }
@@ -562,4 +579,35 @@ header small {
 }
 .activity-body {
   padding-top: 4px;
+}
+
+.composer > textarea:focus-visible {
+  outline: none;
+}
+.composer:focus-within {
+  border-color: #776553;
+}
+.message-settings {
+  color: inherit;
+  background: #24211e;
+  border: 1px solid #51483e;
+  border-radius: 20px;
+  width: min(360px, calc(100% - 24px));
+  max-height: 80%;
+  padding: 20px;
+}
+.message-settings::backdrop {
+  background: #0009;
+}
+.message-settings h2 {
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+.message-settings select,
+.message-settings > button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  font-size: 16px;
 }

@@ -141,12 +141,14 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       page.getByText("Custom widget finished", { exact: true }),
     ).toBeVisible();
     await page.getByRole("textbox", { name: "Message", exact: true }).focus();
+    await page.getByRole("button", { name: "Message settings" }).click();
     await page
       .getByLabel("Model", { exact: true })
       .selectOption("pmh-test/alternate");
     await waitFor(() =>
       state?.model === "pmh-test/alternate" ? true : undefined,
     );
+    await page.getByRole("button", { name: "Done", exact: true }).click();
     await page
       .getByRole("textbox", { name: "Message", exact: true })
       .fill("Image input");
@@ -171,12 +173,14 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
       page.getByRole("img", { name: "Message attachment", exact: true }),
     ).toHaveCount(1);
     await page.getByRole("textbox", { name: "Message", exact: true }).focus();
+    await page.getByRole("button", { name: "Message settings" }).click();
     await page
       .getByLabel("Thinking level", { exact: true })
       .selectOption("high");
     await expect(
       page.getByLabel("Thinking level", { exact: true }),
     ).toHaveValue("high");
+    await page.getByRole("button", { name: "Done", exact: true }).click();
     for (const delivery of ["steer", "followUp"]) {
       await expect(page.getByText("Ready", { exact: true })).toBeVisible();
       await page
@@ -186,7 +190,9 @@ test("same live Pi: terminal, browser, deduplication, dialogs and recovery", asy
         .getByRole("button", { name: "Send message", exact: true })
         .click();
       await page.getByRole("textbox", { name: "Message", exact: true }).focus();
+      await page.getByRole("button", { name: "Message settings" }).click();
       await page.getByLabel("Delivery", { exact: true }).selectOption(delivery);
+      await page.getByRole("button", { name: "Done", exact: true }).click();
       await page
         .getByRole("textbox", { name: "Message", exact: true })
         .fill("Queued " + delivery);

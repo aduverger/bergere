@@ -36,6 +36,7 @@ export function App() {
   const following = useRef(true);
   const [below, setBelow] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const settings = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const c = new Connection(
       (msg) => {
@@ -118,14 +119,22 @@ export function App() {
   useEffect(() => {
     const viewport = window.visualViewport;
     const resize = () => {
-      document.documentElement.style.setProperty(
+      const style = document.documentElement.style;
+      style.setProperty(
         "--app-height",
         `${viewport?.height ?? window.innerHeight}px`,
       );
+      style.setProperty("--app-top", `${viewport?.offsetTop ?? 0}px`);
     };
     resize();
     viewport?.addEventListener("resize", resize);
-    return () => viewport?.removeEventListener("resize", resize);
+    viewport?.addEventListener("scroll", resize);
+    window.addEventListener("resize", resize);
+    return () => {
+      viewport?.removeEventListener("resize", resize);
+      viewport?.removeEventListener("scroll", resize);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
   useLayoutEffect(() => {
     if (following.current && history.current)
@@ -470,58 +479,16 @@ export function App() {
               >
                 ＋
               </button>
-              <select
-                aria-label="Model"
-                value={snapshot?.model ?? ""}
-                disabled={disabled}
-                onChange={(e) => {
-                  const m = snapshot?.models.find(
-                    (m) => `${m.provider}/${m.id}` === e.target.value,
-                  );
-                  if (m)
-                    command({
-                      kind: "model",
-                      provider: m.provider,
-                      modelId: m.id,
-                    });
-                }}
+              <button
+                type="button"
+                className="subtle"
+                aria-label="Message settings"
+                aria-haspopup="dialog"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => settings.current?.showModal()}
               >
-                <option value="">Model</option>
-                {snapshot?.models.map((m) => (
-                  <option
-                    key={`${m.provider}/${m.id}`}
-                    value={`${m.provider}/${m.id}`}
-                  >
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Thinking level"
-                value={snapshot?.thinking ?? "off"}
-                disabled={disabled}
-                onChange={(e) =>
-                  command({ kind: "thinking", level: e.target.value as "off" })
-                }
-              >
-                {["off", "minimal", "low", "medium", "high", "xhigh"].map(
-                  (l) => (
-                    <option key={l}>{l}</option>
-                  ),
-                )}
-              </select>
-              {snapshot?.busy && (
-                <select
-                  aria-label="Delivery"
-                  value={delivery}
-                  onChange={(e) =>
-                    setDelivery(e.target.value as "steer" | "followUp")
-                  }
-                >
-                  <option value="steer">Steer</option>
-                  <option value="followUp">Follow up</option>
-                </select>
-              )}
+                ⚙
+              </button>
               <span className="spacer" />
               {snapshot?.busy && (
                 <button
@@ -544,6 +511,67 @@ export function App() {
               </button>
             </div>
           </form>
+          <dialog
+            ref={settings}
+            className="message-settings"
+            aria-labelledby="settings-title"
+          >
+            <h2 id="settings-title">Message settings</h2>
+            <select
+              aria-label="Model"
+              value={snapshot?.model ?? ""}
+              disabled={disabled}
+              onChange={(e) => {
+                const m = snapshot?.models.find(
+                  (m) => `${m.provider}/${m.id}` === e.target.value,
+                );
+                if (m)
+                  command({
+                    kind: "model",
+                    provider: m.provider,
+                    modelId: m.id,
+                  });
+              }}
+            >
+              <option value="">Model</option>
+              {snapshot?.models.map((m) => (
+                <option
+                  key={`${m.provider}/${m.id}`}
+                  value={`${m.provider}/${m.id}`}
+                >
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Thinking level"
+              value={snapshot?.thinking ?? "off"}
+              disabled={disabled}
+              onChange={(e) =>
+                command({ kind: "thinking", level: e.target.value as "off" })
+              }
+            >
+              {["off", "minimal", "low", "medium", "high", "xhigh"].map((l) => (
+                <option key={l}>{l}</option>
+              ))}
+            </select>
+            {snapshot?.busy && (
+              <select
+                aria-label="Delivery"
+                value={delivery}
+                onChange={(e) =>
+                  setDelivery(e.target.value as "steer" | "followUp")
+                }
+              >
+                <option value="steer">Steer</option>
+                <option value="followUp">Follow up</option>
+              </select>
+            )}
+
+            <button type="button" onClick={() => settings.current?.close()}>
+              Done
+            </button>
+          </dialog>
           {pending && (
             <div className="caption" role="status">
               Waiting for acknowledgement…

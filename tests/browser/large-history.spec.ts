@@ -183,18 +183,25 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
       path: `test-results/${info.project.name}-composer-compact.png`,
     });
     await input.click();
-    await expect(page.getByLabel("Model", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Message settings" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
     expect((await composer.boundingBox())!.height).toBeGreaterThan(
       compactHeight,
     );
     await composer.screenshot({
       path: `test-results/${info.project.name}-composer-expanded.png`,
     });
+    await page.getByRole("button", { name: "Message settings" }).click();
     await page.getByLabel("Model", { exact: true }).focus();
     await expect(
       page.getByLabel("Thinking level", { exact: true }),
     ).toBeVisible();
-    await input.focus();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await input.click();
+    await expect(input).toBeFocused();
     const typing = Date.now();
     await page
       .getByRole("textbox", { name: "Message", exact: true })
@@ -203,6 +210,29 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
     await expect(
       page.getByRole("textbox", { name: "Message", exact: true }),
     ).toHaveValue("A responsive composer with a large conversation");
+    await page.evaluate(() => {
+      Object.defineProperties(window.visualViewport!, {
+        height: { configurable: true, value: 420 },
+        offsetTop: { configurable: true, value: 120 },
+      });
+      window.visualViewport!.dispatchEvent(new Event("resize"));
+      window.visualViewport!.dispatchEvent(new Event("scroll"));
+    });
+    await expect
+      .poll(async () => (await page.locator(".app").boundingBox())!.y)
+      .toBe(120);
+    const viewportComposer = (await composer.boundingBox())!;
+    expect(viewportComposer.y).toBeGreaterThan(120);
+    expect(viewportComposer.y + viewportComposer.height).toBeLessThanOrEqual(
+      540,
+    );
+    await expect(input).toBeFocused();
+    await expect(page.locator(".composer select")).toHaveCount(0);
+    await page.evaluate(() => {
+      Reflect.deleteProperty(window.visualViewport!, "height");
+      Reflect.deleteProperty(window.visualViewport!, "offsetTop");
+      window.visualViewport!.dispatchEvent(new Event("resize"));
+    });
     await page.locator("header").click();
     await expect(page.getByLabel("Model", { exact: true })).toBeHidden();
     await expect(input).toHaveValue(
