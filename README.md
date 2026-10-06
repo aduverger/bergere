@@ -39,6 +39,17 @@ pnpm exec playwright install chromium webkit
 pnpm test:browser
 ```
 
+`pnpm check` runs Biome, type-aware ESLint, strict TypeScript checks, Knip, tests, and the production build. CI runs the same command on pull requests and pushes to `main` using Node.js 24. The browser suite remains a separate local check because it requires Herdr.
+
+- `pnpm lint`: formatting, import organization, React/accessibility rules, complexity (maximum 25), unsafe assertions, unused code, and type-aware promise/control-flow checks.
+- `pnpm format`: apply Biome formatting and safe fixes (tabs, double quotes, semicolons, 100-column lines).
+- `pnpm typecheck`: strict types, checked indexed access, unused locals/parameters, exhaustive returns, and explicit overrides.
+- `pnpm knip`: unused files, exports, and dependencies. Its configuration includes the dynamically loaded Pi companion and test provider; Herdr and Tailscale are external system binaries.
+
+TypeScript is pinned to the 6.0 release line because the current `typescript-eslint` parser does not support TypeScript 7. No TanStack Query, Tailwind, or backend Python rules are included.
+
+Optional Git hooks match the reference repository's pre-commit workflow. With `pre-commit` installed, run `pre-commit install`. The hooks run `pnpm check` for source/config changes and check whitespace, file endings, YAML/TOML, merge conflicts, and oversized additions. Hook installation is explicit and is not performed by `pnpm install`.
+
 The browser suite starts disposable headless Herdr servers with isolated Pi settings and a deterministic local provider. It uses no model credentials or external inference. It tests the actual Pi TUI and companion, not a replacement runtime. Test fixtures are never loaded by the production package. The suite closes its own servers afterward and leaves other Herdr sessions untouched.
 
 To inspect a disposable live session yourself:

@@ -1,0 +1,11 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"entry": [
+		"companion.js",
+		"src/extension/index.ts",
+		"scripts/*.ts",
+		"tests/fixtures/pi-provider.ts"
+	],
+	"project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "tests/**/*.ts", "*.{ts,js}"],
+	"ignoreBinaries": ["herdr", "tailscale"]
+}

@@ -1,55 +1,61 @@
 {
-  "name": "bergere",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
-  "packageManager": "pnpm@11.15.1",
-  "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "gateway": "tsx src/server/main.ts",
-    "build": "tsc --noEmit && vite build && tsx scripts/build.ts",
-    "start": "node dist/server/main.js",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:browser": "pnpm build && playwright test",
-    "check": "pnpm typecheck && pnpm test && pnpm build",
-    "demo": "node --import tsx scripts/local-harness.ts"
-  },
-  "pi": {
-    "extensions": [
-      "./companion.js"
-    ]
-  },
-  "dependencies": {
-    "effect": "4.0.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-ai": "1.0.3",
-    "@earendil-works/pi-coding-agent": "1.0.3",
-    "@playwright/test": "latest",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@types/ws": "^8.18.1",
-    "@vitejs/plugin-react": "latest",
-    "esbuild": "latest",
-    "prettier": "^3.9.9",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "vitest": "latest"
-  },
-  "description": "Your agents, within reach. A private mobile web client for Pi sessions managed by Herdr.",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/aduverger/bergere.git"
-  }
+	"name": "bergere",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"packageManager": "pnpm@11.15.1",
+	"scripts": {
+		"dev": "vite --host 127.0.0.1",
+		"gateway": "tsx src/server/main.ts",
+		"build": "tsc --noEmit && vite build && tsx scripts/build.ts",
+		"start": "node dist/server/main.js",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:browser": "pnpm build && playwright test",
+		"check": "pnpm lint && pnpm typecheck && pnpm knip && pnpm test && pnpm build",
+		"demo": "node --import tsx scripts/local-harness.ts",
+		"lint": "biome check && eslint . --max-warnings 0",
+		"format": "biome check --write",
+		"knip": "knip"
+	},
+	"pi": {
+		"extensions": [
+			"./companion.js"
+		]
+	},
+	"dependencies": {
+		"effect": "4.0.1",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"react-markdown": "^10.1.0",
+		"remark-gfm": "^4.0.1",
+		"ws": "^8.18.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.11",
+		"@earendil-works/pi-ai": "1.0.3",
+		"@earendil-works/pi-coding-agent": "1.0.3",
+		"@playwright/test": "latest",
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@types/ws": "^8.18.1",
+		"@vitejs/plugin-react": "latest",
+		"esbuild": "latest",
+		"eslint": "^10.12.0",
+		"knip": "^6.39.0",
+		"tsx": "latest",
+		"typescript": "~6.0.3",
+		"typescript-eslint": "^8.71.0",
+		"vite": "latest",
+		"vitest": "latest"
+	},
+	"description": "Your agents, within reach. A private mobile web client for Pi sessions managed by Herdr.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/aduverger/bergere.git"
+	}
 }
