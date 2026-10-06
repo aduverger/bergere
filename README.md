@@ -1,8 +1,22 @@
-# Pi · Herdr
+# Bergère
+
+**Your agents, within reach.**
 
 A private, mobile-first web client for **existing Pi processes inside Herdr**. React + Vite render the conversation; a Node.js gateway discovers panes through Herdr and communicates with a companion extension over a private Unix socket. TypeScript and Effect Schema define both sides of the protocol. An Effect scope owns gateway lifetime and cleanup.
 
 Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable projections and never launches Pi or writes session logs.
+
+Repository: [aduverger/bergere](https://github.com/aduverger/bergere). The package name is `bergere`.
+
+## Renamed from pi-mobile-herdr
+
+Existing checkout directories and Pi extension installation paths can stay as they are. Update your remote with:
+
+```sh
+git remote set-url origin git@github.com:aduverger/bergere.git
+```
+
+The `PMH_*` environment variables and `~/.local/state/pi-mobile-herdr/bridge.sock` remain unchanged so installed companions and gateway configuration keep working. If you move a checkout, update its Pi installation path and any service working directory explicitly; do not install a second copy of the companion.
 
 ## Build and test locally
 
@@ -31,7 +45,7 @@ Open `http://127.0.0.1:8788`. Stop with Ctrl+C to remove the disposable session.
 Building the repository does not install the companion. These are explicit setup steps:
 
 1. Verify `pi --version`, `herdr --version`, and the server's `herdr api snapshot` protocol. Do not upgrade a running installation just to make it match.
-2. Build this package, then run `pi install /absolute/path/to/pi-mobile-herdr`. This adds the companion alongside Herdr's managed extension; do not replace or edit `herdr-agent-state.ts`.
+2. Build this package, then run `pi install /absolute/path/to/bergere`. This adds the companion alongside Herdr's managed extension; do not replace or edit `herdr-agent-state.ts`.
 3. Run `/reload` in an **idle** existing Pi pane. The pane must have been started inside Herdr with its standard `HERDR_ENV`, `HERDR_PANE_ID` and `HERDR_SOCKET_PATH` environment.
 4. Start the gateway from this repository:
 
@@ -124,7 +138,7 @@ The package entry point is `companion.js`, which imports the built extension by 
 
 ## Validation and remaining deployment checks
 
-`pnpm test` covers schema validation, revision gaps, command deduplication, dialog races/timeouts, tool reconciliation, HTTP/WebSocket access and pane reuse. `pnpm test:browser` runs desktop Chromium and mobile WebKit against isolated real Pi/Herdr processes, including terminal/browser prompts, dialogs, tools, image input, model controls, reload, session change, abort and restart while streaming. PID assertions verify process ownership stays with Herdr.
+`pnpm test` covers schema validation, revision gaps, command deduplication, dialog races/timeouts, tool reconciliation, HTTP/WebSocket access and pane reuse. `pnpm test:browser` runs desktop Chromium, mobile Chromium and mobile WebKit against isolated real Pi/Herdr processes, including terminal/browser prompts, dialogs, tools, image input, model controls, reload, session change, abort and restart while streaming. PID assertions verify process ownership stays with Herdr.
 
 Mobile WebKit emulation is not a physical iPhone test. Real Safari/home-screen keyboard placement, image picker, phone sleep/foreground recovery and actual Tailscale identity/header isolation remain device/deployment acceptance checks. See [deployment steps](docs/DEPLOYMENT.md). No EC2 changes or Tailscale sharing were made during local implementation.
 

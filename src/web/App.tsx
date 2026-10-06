@@ -239,7 +239,7 @@ export function App() {
       <aside className={drawer ? "sidebar open" : "sidebar"}>
         <div className="brand">
           <img src="/icon.svg" alt="" className="pi-logo" />
-          <strong>Pi · Herdr</strong>
+          <strong>Bergère</strong>
           <button
             className="mobile-only subtle"
             aria-label="Close sessions"
@@ -291,7 +291,7 @@ export function App() {
             ☰
           </button>
           <div>
-            <strong>{session?.title ?? "Pi · Herdr"}</strong>
+            <strong>{session?.title ?? "Bergère"}</strong>
             <small>
               {session?.cwd ?? "Your running sessions, wherever you are"}
             </small>

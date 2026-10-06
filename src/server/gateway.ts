@@ -146,7 +146,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
           reason: connected
             ? ""
             : (a?.state.error ??
-              "Load the pi-mobile-herdr companion in this Pi session."),
+              "Load the Bergère companion in this Pi session."),
         };
       });
   }

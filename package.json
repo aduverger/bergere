@@ -1,5 +1,5 @@
 {
-  "name": "pi-mobile-herdr",
+  "name": "bergere",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -46,5 +46,10 @@
     "typescript": "latest",
     "vite": "latest",
     "vitest": "latest"
+  },
+  "description": "Your agents, within reach. A private mobile web client for Pi sessions managed by Herdr.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aduverger/bergere.git"
   }
 }

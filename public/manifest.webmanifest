@@ -1,6 +1,6 @@
 {
-  "name": "Pi · Herdr",
-  "short_name": "Pi",
+  "name": "Bergère",
+  "short_name": "Bergère",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#161514",
@@ -12,5 +12,6 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ]
+  ],
+  "description": "Your agents, within reach. A private mobile web client for Pi sessions managed by Herdr."
 }

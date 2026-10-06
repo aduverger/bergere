@@ -1,12 +1,12 @@
 [Unit]
-Description=Private Pi Herdr mobile gateway
+Description=Bergère — private Pi session gateway
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/YOUR_USER/code/pi-mobile-herdr
+WorkingDirectory=/home/YOUR_USER/code/bergere
 ExecStart=/ABSOLUTE/PATH/TO/node dist/server/main.js
-EnvironmentFile=%h/.config/pi-mobile-herdr/gateway.env
+EnvironmentFile=%h/.config/bergere/gateway.env
 Restart=on-failure
 RestartSec=3
 UMask=0077

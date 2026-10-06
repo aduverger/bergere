@@ -8,17 +8,19 @@ For a shell-managed background process, follow the README: `make build`, install
 
 ## Companion and systemd service (alternative)
 
+An existing `pi-mobile-herdr.service` can keep running with its existing paths. To migrate its name, stop and disable that service before enabling `bergere.service`, copy its environment file to `~/.config/bergere/gateway.env`, and set the new unit's working directory to your actual checkout. Never run both units. The bridge socket and `PMH_*` variable names remain compatible.
+
 1. Copy the repository, install the locked dependencies and run `pnpm build`.
-2. Explicitly install it with `pi install /absolute/path/to/pi-mobile-herdr` and `/reload` idle Pi sessions. Keep Herdr's managed extension installed independently.
-3. Copy `deploy/gateway.env.example` to `~/.config/pi-mobile-herdr/gateway.env`; replace every placeholder with absolute paths and your exact Tailscale login and HTTPS origin. Do **not** set `PMH_LOCAL=1` in deployment.
-4. Copy `deploy/pi-mobile-herdr.service` to `~/.config/systemd/user/`. Replace its repository path and Node executable path. With nvm, use the absolute executable path from `command -v node` rather than relying on an interactive shell.
+2. Explicitly install it with `pi install /absolute/path/to/bergere` and `/reload` idle Pi sessions. Keep Herdr's managed extension installed independently.
+3. Copy `deploy/gateway.env.example` to `~/.config/bergere/gateway.env`; replace every placeholder with absolute paths and your exact Tailscale login and HTTPS origin. Do **not** set `PMH_LOCAL=1` in deployment.
+4. Copy `deploy/bergere.service` to `~/.config/systemd/user/`. Replace its repository path and Node executable path. With nvm, use the absolute executable path from `command -v node` rather than relying on an interactive shell.
 5. Run:
 
 ```sh
 systemctl --user daemon-reload
-systemctl --user enable --now pi-mobile-herdr.service
-systemctl --user status pi-mobile-herdr.service
-journalctl --user -u pi-mobile-herdr.service
+systemctl --user enable --now bergere.service
+systemctl --user status bergere.service
+journalctl --user -u bergere.service
 ```
 
 If this user must survive logout, arrange user lingering with the host administrator (`loginctl enable-linger USER`). The service does not start, stop or own Herdr/Pi. Stopping or restarting it leaves the Pi process alive. A stale Unix socket after a crash is removed only after an ownership check and a refused connection probe; an active socket is never replaced.
