@@ -573,3 +573,50 @@ button > .lucide {
 	margin-top: 12px;
 	font-size: 16px;
 }
+
+.tool-source {
+	white-space: pre;
+	overflow-wrap: normal;
+	max-height: 480px;
+	line-height: 1.65;
+	tab-size: 4;
+	margin: 8px 0;
+	border: 1px solid #302d29;
+}
+.tool-source code {
+	font-size: inherit;
+}
+.tool-section-label {
+	color: #aaa094;
+	font-size: 11px;
+	margin-top: 10px;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal {
+	color: #d6a8dc;
+}
+.hljs-string,
+.hljs-attr {
+	color: #a6c995;
+}
+.hljs-title,
+.hljs-built_in {
+	color: #e5c18e;
+}
+.hljs-number,
+.hljs-variable {
+	color: #dfab7e;
+}
+.hljs-comment,
+.hljs-meta {
+	color: #999189;
+}
+.hljs-addition {
+	color: #b9dfbd;
+	background: #254330;
+}
+.hljs-deletion {
+	color: #f0b7b0;
+	background: #512d2c;
+}

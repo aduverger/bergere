@@ -140,7 +140,10 @@ export function Composer({
 				</div>
 			</form>
 			<dialog ref={settings} className="message-settings" aria-labelledby="settings-title">
-				<h2 id="settings-title">Message settings</h2>
+				{/* biome-ignore lint/a11y/noAutofocus: A user-opened modal focuses its heading instead of the native model selector. */}
+				<h2 id="settings-title" tabIndex={-1} autoFocus>
+					Message settings
+				</h2>
 				<select
 					aria-label="Model"
 					value={snapshot?.model ?? ""}

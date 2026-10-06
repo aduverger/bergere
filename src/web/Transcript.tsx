@@ -1,10 +1,11 @@
 import { Schema } from "effect";
-import { createContext, memo, useContext, useEffect, useState } from "react";
+import { createContext, lazy, memo, Suspense, useContext, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { type Block, type Message, type Tool, ToolSchema } from "../shared/protocol";
 import { hasVisibleContent, transcriptEntries } from "../shared/transcript";
 
+const ToolOutput = lazy(() => import("./ToolOutput"));
 const ToolContext = createContext({ paneId: "", generation: "" });
 const decodeTool = Schema.decodeUnknownSync(ToolSchema);
 const Content = memo(function Content({ blocks }: { blocks: readonly Block[] }) {
@@ -111,10 +112,12 @@ function ToolDetails({ tool }: { tool: Tool }) {
 	if (error) return <p role="status">{error}</p>;
 	if (!detail) return <p role="status">Loading tool details…</p>;
 	return (
-		<>
-			<pre>{JSON.stringify(detail.args, null, 2)}</pre>
-			<Content blocks={detail.content} />
-		</>
+		<Suspense fallback={<p role="status">Formatting tool details…</p>}>
+			<ToolOutput tool={detail}>
+				<pre>{JSON.stringify(detail.args, null, 2)}</pre>
+				<Content blocks={detail.content} />
+			</ToolOutput>
+		</Suspense>
 	);
 }
 const MemoToolRow = memo(

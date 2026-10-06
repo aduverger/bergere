@@ -200,7 +200,10 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 			path: `test-results/${info.project.name}-composer-expanded.png`,
 		});
 		await page.getByRole("button", { name: "Message settings" }).click();
-		await page.getByLabel("Model", { exact: true }).focus();
+		await expect(page.getByRole("heading", { name: "Message settings" })).toBeFocused();
+		await expect(page.getByLabel("Model", { exact: true })).not.toBeFocused();
+		await page.keyboard.press("Tab");
+		await expect(page.getByLabel("Model", { exact: true })).toBeFocused();
 		await expect(page.getByLabel("Thinking level", { exact: true })).toBeVisible();
 		await page.getByRole("button", { name: "Done", exact: true }).click();
 		await expect(page.getByRole("dialog")).toBeHidden();
