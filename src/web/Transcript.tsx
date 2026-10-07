@@ -39,10 +39,8 @@ function Reasoning({ text }: { text: string }) {
 		</details>
 	);
 }
-function ToolRow({ tool, expanded = false }: { tool: TranscriptTool; expanded?: boolean }) {
+function ToolRow({ tool }: { tool: TranscriptTool }) {
 	const [open, setOpen] = useState(false);
-	const Container = expanded ? "div" : "details";
-	const Heading = expanded ? "div" : "summary";
 	const args = tool.args as Record<string, unknown> | undefined;
 	const label =
 		typeof args?.path === "string"
@@ -51,13 +49,13 @@ function ToolRow({ tool, expanded = false }: { tool: TranscriptTool; expanded?: 
 				? args.command
 				: "";
 	return (
-		<Container
+		<details
 			className={`tool ${tool.status}`}
 			onToggle={(e) => {
-				if (e.target === e.currentTarget) setOpen((e.currentTarget as HTMLDetailsElement).open);
+				if (e.target === e.currentTarget) setOpen(e.currentTarget.open);
 			}}
 		>
-			<Heading className={expanded ? "tool-heading" : undefined}>
+			<summary>
 				<span className="tool-icon">
 					{tool.status === "running"
 						? "◌"
@@ -71,20 +69,20 @@ function ToolRow({ tool, expanded = false }: { tool: TranscriptTool; expanded?: 
 				<span className="tool-label">
 					{tool.children.length ? `${tool.children.length} calls` : label}
 				</span>
-				{!expanded && <span>›</span>}
-			</Heading>
-			{(expanded || open) && (
+				<span>›</span>
+			</summary>
+			{open && (
 				<div className="tool-body">
 					{tool.traceIncomplete && (
 						<p className="tool-section-label">Pi saved an incomplete child-call trace.</p>
 					)}
 					{tool.children.map((child) => (
-						<MemoToolRow key={child.id} tool={child} expanded />
+						<MemoToolRow key={child.id} tool={child} />
 					))}
 					<ToolDetails tool={tool} hasNestedCalls={tool.children.length > 0} />
 				</div>
 			)}
-		</Container>
+		</details>
 	);
 }
 
@@ -164,7 +162,7 @@ function sameTool(a: TranscriptTool, b: TranscriptTool): boolean {
 		})
 	);
 }
-const MemoToolRow = memo(ToolRow, (a, b) => a.expanded === b.expanded && sameTool(a.tool, b.tool));
+const MemoToolRow = memo(ToolRow, (a, b) => sameTool(a.tool, b.tool));
 
 function Activity({ tools }: { tools: TranscriptTool[] }) {
 	const [open, setOpen] = useState(false);

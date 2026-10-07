@@ -66,6 +66,10 @@ for (const nested of [false, true])
 			},
 		];
 		if (nested) {
+			tools.push(
+				{ ...(tools[0] as Tool), id: "read-extra-1" },
+				{ ...(tools[0] as Tool), id: "read-extra-2" },
+			);
 			for (const tool of tools) Object.assign(tool, { parentToolCallId: "script" });
 			tools.unshift({
 				id: "script",
@@ -139,17 +143,15 @@ for (const nested of [false, true])
 		await page.goto("http://bergere.test/");
 		await expect(page.locator("details.tool")).toHaveCount(nested ? 1 : 4);
 		expect(requests).toBe(0);
-		for (const tool of tools) {
-			const row = page
-				.locator(".tool")
-				.filter({
-					has: page.locator(":scope > :is(summary, .tool-heading) > strong", {
-						hasText: tool.name,
-					}),
-				});
-			if (!nested || tool.name === "codemode") await row.locator(":scope > summary").click();
+		for (const [index, tool] of tools.entries()) {
+			const row = page.locator("details.tool").nth(index);
+			await row.locator(":scope > summary").click();
 			if (tool.name === "codemode") {
 				await expect(row.locator(".codemode-script")).toBeVisible();
+				await expect(row.locator("details.tool")).toHaveCount(6);
+				await expect(row.locator(".activity")).toHaveCount(0);
+				await expect(row.locator("details.tool .tool-body")).toHaveCount(0);
+				expect(requests).toBe(1);
 				await expect(row.locator(".codemode-script")).not.toHaveAttribute("open");
 				await row.locator(".codemode-script summary").click();
 				await expect(row.getByRole("region", { name: "Script", exact: true })).toContainText(
@@ -164,7 +166,7 @@ for (const nested of [false, true])
 			await expect(row.locator(".tool-source, .edit-diff").first()).toBeVisible();
 			await expect(row.locator(".tool-body")).not.toContainText('"path":');
 		}
-		expect(requests).toBe(nested ? 5 : 4);
+		expect(requests).toBe(nested ? 7 : 4);
 		const shell = page.getByRole("region", { name: "Shell command" }).locator("pre");
 		expect(await shell.textContent()).toBe(command);
 		await expect(shell).toHaveCSS("white-space", "pre-wrap");
@@ -219,7 +221,7 @@ for (const nested of [false, true])
 		await page
 			.locator(".tool")
 			.filter({
-				has: page.locator(":scope > :is(summary, .tool-heading) > strong", { hasText: "edit" }),
+				has: page.locator(":scope > summary > strong", { hasText: "edit" }),
 			})
 			.scrollIntoViewIfNeeded();
 		await page.screenshot({
