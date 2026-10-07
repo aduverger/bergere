@@ -4,9 +4,14 @@ import { afterEach, expect, it, vi } from "vitest";
 import { authorized } from "../src/server/auth";
 import { config } from "../src/server/config";
 import { gatewayOrigin, gatewayUrl } from "../src/web/gateway-url";
-import { initializeNative, onNativeResume } from "../src/web/native";
+import { initializeNative, onNativeKeyboardHeight, onNativeResume } from "../src/web/native";
 
-const native = vi.hoisted(() => ({ enabled: false, listen: vi.fn(), keyboard: vi.fn() }));
+const native = vi.hoisted(() => ({
+	enabled: false,
+	listen: vi.fn(),
+	keyboard: vi.fn(),
+	keyboardListen: vi.fn(),
+}));
 vi.mock("@capacitor/core", () => ({
 	Capacitor: {
 		isNativePlatform: () => native.enabled,
@@ -14,7 +19,9 @@ vi.mock("@capacitor/core", () => ({
 	},
 }));
 vi.mock("@capacitor/app", () => ({ App: { addListener: native.listen } }));
-vi.mock("@capacitor/keyboard", () => ({ Keyboard: { setAccessoryBarVisible: native.keyboard } }));
+vi.mock("@capacitor/keyboard", () => ({
+	Keyboard: { setAccessoryBarVisible: native.keyboard, addListener: native.keyboardListen },
+}));
 afterEach(() => {
 	native.enabled = false;
 	vi.unstubAllGlobals();
@@ -103,4 +110,27 @@ it("only configures the native keyboard and releases a late foreground subscript
 	await Promise.resolve();
 	expect(remove).toHaveBeenCalledTimes(1);
 	expect(resumed).toHaveBeenCalledTimes(1);
+});
+
+it("updates keyboard geometry before the animation ends and ignores events after cleanup", async () => {
+	const change = vi.fn();
+	onNativeKeyboardHeight(change)();
+	expect(native.keyboardListen).not.toHaveBeenCalled();
+	native.enabled = true;
+	const callbacks = new Map<string, (info: { keyboardHeight: number }) => void>();
+	const remove = vi.fn(async () => {});
+	native.keyboardListen.mockImplementation((event, callback) => {
+		callbacks.set(event, callback);
+		return Promise.resolve({ remove });
+	});
+	const stop = onNativeKeyboardHeight(change);
+	callbacks.get("keyboardWillShow")?.({ keyboardHeight: 336 });
+	expect(change).toHaveBeenLastCalledWith(336);
+	callbacks.get("keyboardWillHide")?.({ keyboardHeight: 0 });
+	expect(change).toHaveBeenLastCalledWith(0);
+	stop();
+	callbacks.get("keyboardWillShow")?.({ keyboardHeight: 336 });
+	await Promise.resolve();
+	expect(change).toHaveBeenCalledTimes(2);
+	expect(remove).toHaveBeenCalledTimes(2);
 });

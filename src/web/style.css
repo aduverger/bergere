@@ -478,10 +478,38 @@ button > .lucide {
 	.sidebar {
 		position: absolute;
 		inset: 0 auto 0 0;
-		width: min(85vw, 300px);
+		width: min(88vw, 340px);
+		padding: calc(env(safe-area-inset-top) + 12px) 16px 0 max(16px, env(safe-area-inset-left));
+		box-shadow: 12px 0 40px #0003;
 		z-index: 3;
 		transform: translateX(-100%);
 		transition: transform 0.15s;
+	}
+	.sidebar .brand {
+		flex-shrink: 0;
+		min-height: 56px;
+		padding: 0 0 12px 8px;
+	}
+	.sidebar .brand > .bergere-logo {
+		width: 32px;
+		height: 32px;
+	}
+	.sidebar .brand strong {
+		font-size: 16px;
+	}
+	.sidebar nav {
+		min-height: 0;
+		overscroll-behavior: contain;
+		padding: 8px 0 16px;
+	}
+	.sidebar nav section + section {
+		margin-top: 24px;
+	}
+	.sidebar footer {
+		flex-shrink: 0;
+		align-items: center;
+		font-size: 12px;
+		padding: 16px 8px calc(16px + var(--app-safe-bottom, env(safe-area-inset-bottom)));
 	}
 	.sidebar:not(.open) {
 		visibility: hidden;
@@ -502,7 +530,7 @@ button > .lucide {
 		padding: 72px 14px 20px;
 	}
 	.compose-area {
-		padding: 6px 10px max(8px, env(safe-area-inset-bottom));
+		padding: 6px 10px max(8px, var(--app-safe-bottom, env(safe-area-inset-bottom)));
 	}
 	.composer {
 		padding: 10px;

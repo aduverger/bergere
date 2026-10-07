@@ -43,7 +43,7 @@ After signing is configured, `pnpm ios:run` can also run the synchronized build.
 ## Native behavior
 
 - The Keyboard plugin hides the accessory bar and uses a dark keyboard.
-- Native WebView resizing owns keyboard geometry. The existing layout reads the resized window height, without subtracting keyboard height a second time. The browser retains its VisualViewport handling.
+- The WebView stays full-size. Keyboard will-show/will-hide events update the app height immediately, avoiding the plugin’s delayed native resize. The browser retains its VisualViewport handling.
 - Native foreground events reconnect through the existing Connection class, resubscribe, and wait for an authoritative snapshot. No prompts are replayed.
 - Drafts and attachments remain in memory. They survive ordinary backgrounding while the process remains alive, but not iOS terminating the app.
 - Image attachment selection uses the existing file picker. There is no new camera, notification, background execution, or offline transcript feature.

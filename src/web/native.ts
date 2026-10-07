@@ -19,3 +19,22 @@ export function onNativeResume(resume: () => void): () => void {
 		void subscription.then((handle) => handle.remove()).catch(() => {});
 	};
 }
+
+export function onNativeKeyboardHeight(change: (height: number) => void): () => void {
+	if (Capacitor.getPlatform() !== "ios") return () => {};
+	let active = true;
+	const update = (height: number) => {
+		if (active) change(height);
+	};
+	const subscriptions = [
+		Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => update(keyboardHeight)),
+		Keyboard.addListener("keyboardWillHide", () => update(0)),
+	];
+	for (const subscription of subscriptions)
+		void subscription.catch(() => console.error("Native keyboard listener failed."));
+	return () => {
+		active = false;
+		for (const subscription of subscriptions)
+			void subscription.then((handle) => handle.remove()).catch(() => {});
+	};
+}

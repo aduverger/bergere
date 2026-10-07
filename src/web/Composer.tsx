@@ -1,4 +1,4 @@
-import { ArrowUp, Plus, SlidersHorizontal, Square, X } from "lucide-react";
+import { ArrowUp, SlidersHorizontal, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Block, Command, Snapshot } from "../shared/protocol";
 
@@ -29,7 +29,6 @@ export function Composer({
 	attach: (files: FileList | null) => Promise<void>;
 	removeAttachment: (id: string) => void;
 }) {
-	const file = useRef<HTMLInputElement>(null);
 	const settings = useRef<HTMLDialogElement>(null);
 	const [delivery, setDelivery] = useState<"steer" | "followUp">("steer");
 	return (
@@ -87,26 +86,6 @@ export function Composer({
 					}}
 				/>
 				<div className="controls">
-					<input
-						ref={file}
-						type="file"
-						accept="image/png,image/jpeg,image/webp,image/gif"
-						multiple
-						hidden
-						onChange={(e) => {
-							void attach(e.target.files);
-							e.target.value = "";
-						}}
-					/>
-					<button
-						type="button"
-						className="subtle icon-button"
-						aria-label="Attach images"
-						disabled={promptDisabled}
-						onClick={() => file.current?.click()}
-					>
-						<Plus aria-hidden="true" />
-					</button>
 					<button
 						type="button"
 						className="subtle icon-button"

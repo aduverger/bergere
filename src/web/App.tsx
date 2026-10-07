@@ -12,6 +12,7 @@ import {
 import { type Attachment, Composer } from "./Composer";
 import { Connection } from "./client";
 import { DialogCard } from "./DialogCard";
+import { onNativeKeyboardHeight } from "./native";
 import { Transcript } from "./Transcript";
 
 function groupSessions(sessions: readonly Session[]) {
@@ -130,16 +131,27 @@ export function App() {
 	}, []);
 	useEffect(() => {
 		const viewport = Capacitor.isNativePlatform() ? null : window.visualViewport;
+		let keyboardHeight = 0;
 		const resize = () => {
 			const style = document.documentElement.style;
-			style.setProperty("--app-height", `${viewport?.height ?? window.innerHeight}px`);
+			style.setProperty(
+				"--app-height",
+				`${Math.max(0, (viewport?.height ?? window.innerHeight) - keyboardHeight)}px`,
+			);
 			style.setProperty("--app-top", `${viewport?.offsetTop ?? 0}px`);
+			if (keyboardHeight > 0) style.setProperty("--app-safe-bottom", "0px");
+			else style.removeProperty("--app-safe-bottom");
 		};
+		const stopKeyboard = onNativeKeyboardHeight((height) => {
+			keyboardHeight = height;
+			resize();
+		});
 		resize();
 		viewport?.addEventListener("resize", resize);
 		viewport?.addEventListener("scroll", resize);
 		window.addEventListener("resize", resize);
 		return () => {
+			stopKeyboard();
 			viewport?.removeEventListener("resize", resize);
 			viewport?.removeEventListener("scroll", resize);
 			window.removeEventListener("resize", resize);

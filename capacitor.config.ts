@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
 	webDir: "dist/web",
 	backgroundColor: "#161514",
 	server: { hostname: "localhost", iosScheme: "capacitor" },
-	plugins: { Keyboard: { resize: KeyboardResize.Native, style: KeyboardStyle.Dark } },
+	plugins: { Keyboard: { resize: KeyboardResize.None, style: KeyboardStyle.Dark } },
 };
 
 export default config;
