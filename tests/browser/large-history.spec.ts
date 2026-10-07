@@ -271,10 +271,10 @@ test("large history keeps collapsed output unmounted and typing responsive", asy
 		await expect(page.getByText("Incremental response", { exact: true })).toBeVisible();
 		expect(detailRequests).toBe(0);
 		await page.locator(".transcript > details.tool").last().locator(":scope > summary").click();
-		await expect(page.locator("details.activity > summary")).toHaveText("6 tool calls · completed");
-		await page.locator("details.activity > summary").last().click();
-		await expect(page.locator(".activity .thinking")).toHaveCount(0);
-		await expect(page.locator(".activity .tool")).toHaveCount(6);
+		await expect(page.locator("details.activity")).toHaveCount(0);
+		await expect(
+			page.locator(".transcript > details.tool").last().locator("details.tool"),
+		).toHaveCount(6);
 		await page.locator("details.tool summary").filter({ hasText: "nested.ts" }).click();
 		await expect(page.locator(".tool-body")).toHaveCount(2);
 		await expect(page.getByText("Deferred nested output", { exact: true })).toBeVisible();

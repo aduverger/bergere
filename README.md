@@ -24,7 +24,7 @@ Open `http://127.0.0.1:8787`. If Herdr uses a non-default socket, supply `HERDR_
 
 Default bridge: `~/.local/state/bergere/bridge.sock`. Its directory must belong to the current user with mode `0700`; the socket is `0600`. An optional `BERGERE_BRIDGE_SOCKET` must match in the Pi process and gateway environments. The default works without changing existing pane environments.
 
-`pnpm dev` runs Vite on loopback and proxies `/ws` to port 8787. For that workflow start `BERGERE_LOCAL=1 BERGERE_ORIGIN=http://127.0.0.1:5173 pnpm gateway`, then open the Vite URL. Production always serves built assets and WebSocket from one origin.
+`pnpm dev` runs Vite on loopback and proxies `/ws` to port 8787. For that workflow start `BERGERE_LOCAL=1 BERGERE_ORIGIN=http://127.0.0.1:5173 pnpm gateway`, then open the Vite URL. The production web client serves built assets and WebSocket from one origin; the optional native client bundles its assets and connects to an explicitly configured gateway.
 
 ## Run the server on EC2
 
@@ -72,6 +72,10 @@ make stop
 ```
 
 `pnpm start` remains the foreground command with explicit environment configuration.
+
+## Optional iPhone app
+
+Bergère also has a Capacitor iOS wrapper using the same React UI. It bundles the frontend, hides the keyboard accessory bar, and reconnects to the existing gateway on foreground recovery. The web client remains supported. See [iPhone setup and device validation](docs/IOS.md) for Xcode installation, native-origin opt-in, signing, and build commands. Native device validation is still pending.
 
 ## Build and test locally
 

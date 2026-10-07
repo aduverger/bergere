@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { ArrowDown, Menu, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -128,7 +129,7 @@ export function App() {
 		return () => c.stop();
 	}, []);
 	useEffect(() => {
-		const viewport = window.visualViewport;
+		const viewport = Capacitor.isNativePlatform() ? null : window.visualViewport;
 		const resize = () => {
 			const style = document.documentElement.style;
 			style.setProperty("--app-height", `${viewport?.height ?? window.innerHeight}px`);

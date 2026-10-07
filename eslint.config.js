@@ -2,7 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-	globalIgnores(["dist/**", "test-results/**", "playwright-report/**", ".run/**"]),
+	globalIgnores(["dist/**", "test-results/**", "playwright-report/**", ".run/**", "ios/**"]),
 	{
 		files: ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "tests/**/*.ts", "*.config.ts"],
 		languageOptions: {

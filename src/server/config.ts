@@ -5,6 +5,7 @@ export interface Config {
 	origin: string;
 	login: string;
 	local: boolean;
+	nativeOrigin?: string;
 	herdrSocket: string;
 	bridgeSocket: string;
 	webRoot: string;
@@ -24,11 +25,15 @@ export function config(env: NodeJS.ProcessEnv = process.env): Config {
 		throw new Error("BERGERE_ORIGIN must be a plain origin.");
 	if (local ? !["127.0.0.1", "localhost"].includes(url.hostname) : url.protocol !== "https:")
 		throw new Error("Local mode requires loopback; production requires HTTPS.");
+	const nativeOrigin = env.BERGERE_NATIVE_ORIGIN;
+	if (nativeOrigin !== undefined && nativeOrigin !== "capacitor://localhost")
+		throw new Error("BERGERE_NATIVE_ORIGIN must be capacitor://localhost when enabled.");
 	return {
 		port,
 		origin,
 		login,
 		local,
+		nativeOrigin,
 		herdrSocket: env.HERDR_SOCKET_PATH ?? path.join(os.homedir(), ".config/herdr/herdr.sock"),
 		bridgeSocket:
 			env.BERGERE_BRIDGE_SOCKET ?? path.join(os.homedir(), ".local/state/bergere/bridge.sock"),

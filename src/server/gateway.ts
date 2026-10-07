@@ -336,6 +336,10 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 			res.end("Forbidden");
 			return;
 		}
+		if (c.nativeOrigin && req.headers.origin === c.nativeOrigin) {
+			res.setHeader("Access-Control-Allow-Origin", c.nativeOrigin);
+			res.setHeader("Vary", "Origin");
+		}
 		if (req.method !== "GET" && req.method !== "HEAD") {
 			res.writeHead(405);
 			res.end();

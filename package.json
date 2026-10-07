@@ -19,7 +19,10 @@
 		"demo": "node --import tsx scripts/local-harness.ts",
 		"lint": "biome check && eslint . --max-warnings 0",
 		"format": "biome check --write",
-		"knip": "knip"
+		"knip": "knip",
+		"ios:sync": "pnpm build && cap sync ios",
+		"ios:open": "cap open ios",
+		"ios:run": "cap run ios"
 	},
 	"pi": {
 		"extensions": [
@@ -27,6 +30,10 @@
 		]
 	},
 	"dependencies": {
+		"@capacitor/app": "^8.1.2",
+		"@capacitor/core": "^8.5.2",
+		"@capacitor/ios": "^8.5.2",
+		"@capacitor/keyboard": "^8.0.6",
 		"acorn": "^8.19.0",
 		"diff": "^9.0.0",
 		"effect": "4.0.1",
@@ -40,6 +47,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.11",
+		"@capacitor/cli": "^8.5.2",
 		"@earendil-works/pi-ai": "1.0.3",
 		"@earendil-works/pi-coding-agent": "1.0.3",
 		"@playwright/test": "latest",

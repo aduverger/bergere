@@ -1,8 +1,11 @@
 import { type Command, decodeServer, type ServerMessage } from "../shared/protocol";
+import { gatewayUrl } from "./gateway-url";
+import { onNativeResume } from "./native";
 export class Connection {
 	private socket?: WebSocket;
 	private timer?: ReturnType<typeof setTimeout>;
 	private stopped = false;
+	private stopNativeResume?: () => void;
 	private selected = "";
 	constructor(
 		private receive: (message: ServerMessage) => void,
@@ -11,11 +14,13 @@ export class Connection {
 	start() {
 		this.stopped = false;
 		this.connect();
+		this.stopNativeResume = onNativeResume(() => this.connect());
 		window.addEventListener("online", this.wake);
 		document.addEventListener("visibilitychange", this.wake);
 	}
 	stop() {
 		this.stopped = true;
+		this.stopNativeResume?.();
 		clearTimeout(this.timer);
 		this.socket?.close();
 		window.removeEventListener("online", this.wake);
@@ -33,9 +38,7 @@ export class Connection {
 		this.socket = undefined;
 		old?.close();
 		this.status(false);
-		const socket = new WebSocket(
-			`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
-		);
+		const socket = new WebSocket(gatewayUrl("/ws", true));
 		this.socket = socket;
 		socket.onopen = () => {
 			if (this.socket !== socket) return;

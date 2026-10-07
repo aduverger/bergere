@@ -5,6 +5,8 @@ import remarkGfm from "remark-gfm";
 import { type Block, type Message, type Tool, ToolSchema } from "../shared/protocol";
 import { hasVisibleContent, type TranscriptTool, transcriptEntries } from "../shared/transcript";
 
+import { gatewayUrl } from "./gateway-url";
+
 const ToolOutput = lazy(() => import("./ToolOutput"));
 const ToolContext = createContext({ paneId: "", generation: "" });
 const decodeTool = Schema.decodeUnknownSync(ToolSchema);
@@ -99,7 +101,7 @@ function ToolDetails({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: boo
 		const query = new URLSearchParams({ paneId, generation, id: tool.id });
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const load = () => {
-			void fetch(`/api/tool?${query}`, {
+			void fetch(gatewayUrl(`/api/tool?${query}`), {
 				signal: controller.signal,
 				cache: "no-store",
 			})

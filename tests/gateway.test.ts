@@ -18,7 +18,7 @@ async function until<T>(read: () => T | undefined): Promise<T> {
 	}
 	throw new Error("Missing gateway event");
 }
-it("validates real HTTP/WS access and invalidates a reused pane without redirecting commands", async () => {
+it.each([false, true])("validates HTTP/WS access and pane reuse (native: %s)", async (native) => {
 	const root = await mkdtemp(path.join(os.tmpdir(), "bergere-gateway-"));
 	await mkdir(path.join(root, "web"));
 	await writeFile(path.join(root, "web/index.html"), "test");
@@ -64,6 +64,7 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 		origin: "https://host.example.ts.net",
 		login: "owner@example.com",
 		local: false,
+		nativeOrigin: native ? "capacitor://localhost" : undefined,
 		herdrSocket,
 		bridgeSocket: path.join(root, "bridge.sock"),
 		webRoot: path.join(root, "web"),
@@ -149,7 +150,8 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 			headers: {
 				host: "host.example.ts.net",
 				"tailscale-user-login": config.login,
-				origin: config.origin,
+				origin: config.nativeOrigin ?? config.origin,
+				"sec-fetch-site": native ? "cross-site" : "same-origin",
 			},
 		});
 		browser.on("message", (raw) => events.push(decodeServer(JSON.parse(raw.toString()))));
@@ -164,13 +166,20 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 		const initial = await until(() => events.find((e) => e.type === "snapshot"));
 		expect(JSON.stringify(initial)).not.toContain("Full deferred output");
 		const details = (generation: string, login = config.login) =>
-			new Promise<{ status: number; body: string; cache: string | undefined }>((resolve) => {
+			new Promise<{
+				status: number;
+				body: string;
+				cache: string | undefined;
+				cors: string | undefined;
+			}>((resolve) => {
 				http.get(
 					`http://127.0.0.1:${port}/api/tool?paneId=pane&generation=${generation}&id=tool`,
 					{
 						headers: {
 							host: "host.example.ts.net",
 							"tailscale-user-login": login,
+							origin: config.nativeOrigin ?? config.origin,
+							"sec-fetch-site": native ? "cross-site" : "same-origin",
 						},
 					},
 					(res) => {
@@ -181,6 +190,7 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 								status: res.statusCode ?? 0,
 								body,
 								cache: res.headers["cache-control"],
+								cors: res.headers["access-control-allow-origin"],
 							}),
 						);
 					},
@@ -190,6 +200,7 @@ it("validates real HTTP/WS access and invalidates a reused pane without redirect
 		expect(detail.status).toBe(200);
 		expect(detail.body).toContain("Full deferred output");
 		expect(detail.cache).toBe("no-store");
+		expect(detail.cors).toBe(config.nativeOrigin);
 		expect((await details("old")).status).toBe(409);
 		expect((await details("g1", "other@example.com")).status).toBe(403);
 		terminalId = "replacement";

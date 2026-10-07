@@ -13,7 +13,15 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!dist", "!node_modules", "!test-results", "!playwright-report", "!.run"]
+		"includes": [
+			"**",
+			"!dist",
+			"!node_modules",
+			"!test-results",
+			"!playwright-report",
+			"!.run",
+			"!ios"
+		]
 	},
 	"linter": {
 		"enabled": true,
