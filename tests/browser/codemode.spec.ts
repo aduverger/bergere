@@ -69,13 +69,11 @@ test("formats sequential script outputs without child-call metadata", async ({ p
 	});
 	await page.goto("http://bergere.test/");
 	await page.locator("details.tool > summary").click();
-	const children = page.locator(".codemode-outputs > details");
+	const children = page.locator(".codemode-outputs > .tool");
 	await expect(children).toHaveCount(4);
-	await expect(children.locator(".tool-body")).toHaveCount(0);
-	await children.nth(0).locator("summary").click();
+	await expect(children.locator(".tool-body")).toHaveCount(4);
 	await expect(children.nth(0).locator(".hljs-keyword").first()).toHaveText("import");
 	await expect(children.nth(0)).toContainText("From line 1");
-	await children.nth(2).locator("summary").click();
 	await expect(children.nth(2).getByRole("region", { name: "Shell command" })).toContainText(
 		"cd emidat-api && rg",
 	);
@@ -84,8 +82,7 @@ test("formats sequential script outputs without child-call metadata", async ({ p
 	);
 	await expect(children.nth(2)).not.toContainText('"exit_code"');
 	await expect(page.locator(".codemode-script")).not.toHaveAttribute("open");
-	await children.nth(0).locator("summary").click();
-	await expect(children.nth(0).locator(".tool-body")).toHaveCount(0);
+	await expect(children.locator("summary")).toHaveCount(0);
 	await expect(children).toHaveCount(4);
 	expect(await page.locator(".history").evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
 		false,

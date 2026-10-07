@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { memo, type ReactNode, useState } from "react";
+import { memo, type ReactNode } from "react";
 import type { Tool } from "../shared/protocol";
 import { record } from "../shared/transcript";
 import { codemodeOutputs, isCodemodeCompletionHeader } from "./codemode";
@@ -53,36 +53,28 @@ function EditPreview({ args, language }: { args: Record<string, unknown>; langua
 	);
 }
 function MappedTool({ tool }: { tool: Tool }) {
-	const [open, setOpen] = useState(false);
 	const args = record(tool.args);
 	return (
-		<details
-			className={`tool ${tool.status}`}
-			onToggle={(event) => {
-				if (event.target === event.currentTarget) setOpen(event.currentTarget.open);
-			}}
-		>
-			<summary>
+		<div className={`tool ${tool.status}`}>
+			<div className="tool-heading">
 				<strong>{tool.name}</strong>
 				<span className="tool-label">{String(args.path ?? args.command ?? "")}</span>
-				<span>›</span>
-			</summary>
-			{open && (
-				<div className="tool-body">
-					<ToolOutput tool={tool}>
-						<Source
-							text={tool.content
-								.filter((b) => b.type === "text")
-								.map((b) => b.text)
-								.join("\n")}
-							label="Tool output"
-						/>
-					</ToolOutput>
-				</div>
-			)}
-		</details>
+			</div>
+			<div className="tool-body">
+				<ToolOutput tool={tool}>
+					<Source
+						text={tool.content
+							.filter((b) => b.type === "text")
+							.map((b) => b.text)
+							.join("\n")}
+						label="Tool output"
+					/>
+				</ToolOutput>
+			</div>
+		</div>
 	);
 }
+
 function CodemodeOutput({ tool, hasNestedCalls }: { tool: Tool; hasNestedCalls: boolean }) {
 	const args = record(tool.args);
 	const mapped = hasNestedCalls ? undefined : codemodeOutputs(tool);

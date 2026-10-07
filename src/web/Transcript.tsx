@@ -39,8 +39,10 @@ function Reasoning({ text }: { text: string }) {
 		</details>
 	);
 }
-function ToolRow({ tool }: { tool: TranscriptTool }) {
+function ToolRow({ tool, expanded = false }: { tool: TranscriptTool; expanded?: boolean }) {
 	const [open, setOpen] = useState(false);
+	const Container = expanded ? "div" : "details";
+	const Heading = expanded ? "div" : "summary";
 	const args = tool.args as Record<string, unknown> | undefined;
 	const label =
 		typeof args?.path === "string"
@@ -49,13 +51,13 @@ function ToolRow({ tool }: { tool: TranscriptTool }) {
 				? args.command
 				: "";
 	return (
-		<details
+		<Container
 			className={`tool ${tool.status}`}
 			onToggle={(e) => {
-				if (e.target === e.currentTarget) setOpen(e.currentTarget.open);
+				if (e.target === e.currentTarget) setOpen((e.currentTarget as HTMLDetailsElement).open);
 			}}
 		>
-			<summary>
+			<Heading className={expanded ? "tool-heading" : undefined}>
 				<span className="tool-icon">
 					{tool.status === "running"
 						? "◌"
@@ -69,18 +71,20 @@ function ToolRow({ tool }: { tool: TranscriptTool }) {
 				<span className="tool-label">
 					{tool.children.length ? `${tool.children.length} calls` : label}
 				</span>
-				<span>›</span>
-			</summary>
-			{open && (
+				{!expanded && <span>›</span>}
+			</Heading>
+			{(expanded || open) && (
 				<div className="tool-body">
 					{tool.traceIncomplete && (
 						<p className="tool-section-label">Pi saved an incomplete child-call trace.</p>
 					)}
-					{tool.children.length > 0 && <Activity tools={tool.children} />}
+					{tool.children.map((child) => (
+						<MemoToolRow key={child.id} tool={child} expanded />
+					))}
 					<ToolDetails tool={tool} hasNestedCalls={tool.children.length > 0} />
 				</div>
 			)}
-		</details>
+		</Container>
 	);
 }
 
@@ -160,7 +164,7 @@ function sameTool(a: TranscriptTool, b: TranscriptTool): boolean {
 		})
 	);
 }
-const MemoToolRow = memo(ToolRow, (a, b) => sameTool(a.tool, b.tool));
+const MemoToolRow = memo(ToolRow, (a, b) => a.expanded === b.expanded && sameTool(a.tool, b.tool));
 
 function Activity({ tools }: { tools: TranscriptTool[] }) {
 	const [open, setOpen] = useState(false);

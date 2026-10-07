@@ -141,9 +141,13 @@ for (const nested of [false, true])
 		expect(requests).toBe(0);
 		for (const tool of tools) {
 			const row = page
-				.locator("details.tool")
-				.filter({ has: page.locator(":scope > summary > strong", { hasText: tool.name }) });
-			await row.locator(":scope > summary").click();
+				.locator(".tool")
+				.filter({
+					has: page.locator(":scope > :is(summary, .tool-heading) > strong", {
+						hasText: tool.name,
+					}),
+				});
+			if (!nested || tool.name === "codemode") await row.locator(":scope > summary").click();
 			if (tool.name === "codemode") {
 				await expect(row.locator(".codemode-script")).toBeVisible();
 				await expect(row.locator(".codemode-script")).not.toHaveAttribute("open");
@@ -152,7 +156,7 @@ for (const nested of [false, true])
 					"text(await",
 				);
 				await row.locator(".codemode-script summary").click();
-				await expect(row.getByRole("region", { name: "Output" })).toHaveText(
+				await expect(row.getByRole("region", { name: "Output", exact: true })).toHaveText(
 					"# Literal output\n  indented",
 				);
 				continue;
@@ -213,8 +217,10 @@ for (const nested of [false, true])
 			.evaluate((el) => el.scrollWidth > el.clientWidth);
 		expect(overflow).toBe(false);
 		await page
-			.locator("details.tool")
-			.filter({ has: page.locator(":scope > summary > strong", { hasText: "edit" }) })
+			.locator(".tool")
+			.filter({
+				has: page.locator(":scope > :is(summary, .tool-heading) > strong", { hasText: "edit" }),
+			})
 			.scrollIntoViewIfNeeded();
 		await page.screenshot({
 			path: `test-results/${info.project.name}-${nested ? "codemode" : "neutral-diff"}.png`,

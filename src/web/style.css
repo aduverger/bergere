@@ -258,13 +258,16 @@ main {
 	margin: 8px 0;
 	font-size: 12px;
 }
-.tool summary {
+.tool summary,
+.tool-heading {
 	display: flex;
 	align-items: center;
 	gap: 10px;
 	padding: 12px;
-	cursor: pointer;
 	list-style: none;
+}
+.tool summary {
+	cursor: pointer;
 }
 .tool summary::-webkit-details-marker {
 	display: none;
