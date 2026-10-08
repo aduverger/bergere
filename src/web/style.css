@@ -748,14 +748,32 @@ button > .lucide {
 	min-height: 44px;
 }
 .creation-dialog {
+	position: fixed;
+	inset: var(--app-top, 0px) 0 auto;
+	width: 100%;
+	max-width: none;
+	height: var(--app-height);
+	max-height: none;
+	margin: 0;
+	padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
+	border: 0;
+	background: transparent;
 	color: inherit;
+	overflow: auto;
+	overscroll-behavior: contain;
+}
+.creation-dialog[open] {
+	display: flex;
+	flex-direction: column;
+}
+.creation-panel {
+	flex-shrink: 0;
+	width: min(460px, 100%);
+	margin: auto;
+	padding: 20px;
 	background: #24211e;
 	border: 1px solid #51483e;
 	border-radius: 20px;
-	width: min(460px, calc(100% - 24px));
-	max-height: calc(var(--app-height) - env(safe-area-inset-top) - 24px);
-	overflow: auto;
-	padding: 20px;
 }
 .creation-dialog::backdrop {
 	background: #0009;
@@ -766,6 +784,7 @@ button > .lucide {
 	justify-content: space-between;
 }
 .creation-dialog h2 {
+	outline: none;
 	font-size: 18px;
 	margin: 0;
 }
@@ -801,6 +820,6 @@ button > .lucide {
 }
 
 .creation-session-details {
-	min-height: 160px;
+	min-height: 52px;
 	display: flow-root;
 }

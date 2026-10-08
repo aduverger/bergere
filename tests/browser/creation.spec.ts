@@ -22,9 +22,14 @@ test("create Pi sessions and workspaces in real Herdr without Emidev", async ({ 
 		await expect(page.getByRole("combobox", { name: "Workspace", exact: true })).toBeVisible();
 		await expect(page.getByLabel("Root directory")).toHaveCount(0);
 		await expect(page.getByRole("button", { name: "Start Pi", exact: true })).toBeDisabled();
-		const before = await page.getByRole("dialog").boundingBox();
+		await expect(page.getByRole("heading", { name: "New", exact: true })).toHaveCSS(
+			"outline-style",
+			"none",
+		);
+		const before = await page.locator(".creation-panel").boundingBox();
+		expect(before?.height).toBeLessThan(340);
 		await page.getByRole("combobox", { name: "Workspace", exact: true }).selectOption(workspace);
-		expect((await page.getByRole("dialog").boundingBox())?.height).toBe(before?.height);
+
 		await expect(page.getByLabel("Root directory")).toHaveValue(await realpath(h.root));
 		await expect(page.getByText("Confirm the workspace root", { exact: false })).toBeVisible();
 		await expect(page.getByLabel("Repositories", { exact: true })).toHaveCount(0);
@@ -108,6 +113,26 @@ test("optional Emidev provisioning survives gateway restart and selects the retu
 		await expect(page.getByLabel("Repositories", { exact: true })).toHaveAttribute(
 			"autocapitalize",
 			"none",
+		);
+		const panel = page.locator(".creation-panel");
+		const size = await panel.boundingBox();
+		await page.getByLabel("Workspace name").focus();
+		await page.evaluate(() => document.documentElement.style.setProperty("--app-height", "360px"));
+		await expect.poll(async () => (await panel.boundingBox())?.height).toBe(size?.height);
+		for (const field of [
+			page.getByLabel("Workspace name"),
+			page.getByLabel("Repositories", { exact: true }),
+		]) {
+			await field.focus();
+			await expect
+				.poll(async () => {
+					const rect = await field.boundingBox();
+					return !!rect && rect.y >= 0 && rect.y + rect.height <= 360;
+				})
+				.toBe(true);
+		}
+		await page.evaluate(() =>
+			document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`),
 		);
 		await page.getByLabel("Workspace name").fill("emidev-test");
 		await page.getByLabel("Repositories", { exact: true }).fill("emidat-api");

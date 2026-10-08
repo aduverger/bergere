@@ -37,6 +37,15 @@ export function CreationDialog({
 	useEffect(() => {
 		dialog.current?.showModal();
 		title.current?.focus({ preventScroll: true });
+		const element = dialog.current;
+		if (!element) return;
+		const resize = new ResizeObserver(() => {
+			const focused = document.activeElement;
+			if (focused instanceof HTMLInputElement && element.contains(focused))
+				focused.scrollIntoView({ block: "nearest", inline: "nearest" });
+		});
+		resize.observe(element);
+		return () => resize.disconnect();
 	}, []);
 	useEffect(() => {
 		connection.creationListener = (message) => {
@@ -104,66 +113,68 @@ export function CreationDialog({
 			aria-labelledby="creation-title"
 			onCancel={close}
 		>
-			<header>
-				<h2 id="creation-title" ref={title} tabIndex={-1}>
-					New
-				</h2>
-				<button
-					type="button"
-					className="icon-button subtle"
-					aria-label="Close creation"
-					onClick={close}
-				>
-					<X aria-hidden="true" />
-				</button>
-			</header>
-			{!online && <p role="status">Reconnecting. Creation is disabled.</p>}
-			{error && (
-				<p className="banner" role="alert">
-					{error}
-				</p>
-			)}
-			{hasOperation ? (
-				<section aria-live="polite">
-					<p>{operation ? stages[operation.stage] : "Checking creation…"}</p>
-					{operation?.error && <p>{operation.error}</p>}
-					{operation?.stage === "starting" && (
-						<p className="creation-hint">
-							If Pi stays here, check that the Bergère companion is installed in the terminal. No
-							additional Pi process will be launched.
-						</p>
-					)}
-					{operation?.paneId && (
+			<div className="creation-panel">
+				<header>
+					<h2 id="creation-title" ref={title} tabIndex={-1}>
+						New
+					</h2>
+					<button
+						type="button"
+						className="icon-button subtle"
+						aria-label="Close creation"
+						onClick={close}
+					>
+						<X aria-hidden="true" />
+					</button>
+				</header>
+				{!online && <p role="status">Reconnecting. Creation is disabled.</p>}
+				{error && (
+					<p className="banner" role="alert">
+						{error}
+					</p>
+				)}
+				{hasOperation ? (
+					<section aria-live="polite">
+						<p>{operation ? stages[operation.stage] : "Checking creation…"}</p>
+						{operation?.error && <p>{operation.error}</p>}
+						{operation?.stage === "starting" && (
+							<p className="creation-hint">
+								If Pi stays here, check that the Bergère companion is installed in the terminal. No
+								additional Pi process will be launched.
+							</p>
+						)}
+						{operation?.paneId && (
+							<button
+								type="button"
+								onClick={() => {
+									select(operation.paneId);
+									close();
+								}}
+							>
+								Open session
+							</button>
+						)}
 						<button
 							type="button"
 							onClick={() => {
-								select(operation.paneId);
-								close();
+								operationId.current = "";
+								sessionStorage.removeItem(storageKey);
+								setPending(false);
+								setOperation(undefined);
+								setError("");
 							}}
 						>
-							Open session
+							Dismiss operation
 						</button>
-					)}
-					<button
-						type="button"
-						onClick={() => {
-							operationId.current = "";
-							sessionStorage.removeItem(storageKey);
-							setPending(false);
-							setOperation(undefined);
-							setError("");
-						}}
-					>
-						Dismiss operation
-					</button>
-					<p className="creation-hint">
-						Closing this dialog does not stop the terminal process. Check an uncertain launch in
-						Herdr before creating another.
-					</p>
-				</section>
-			) : (
-				<CreationFields catalog={catalog} online={online} submit={submit} />
-			)}
+						<p className="creation-hint">
+							Closing this dialog does not stop the terminal process. Check an uncertain launch in
+							Herdr before creating another.
+						</p>
+					</section>
+				) : (
+					<CreationFields catalog={catalog} online={online} submit={submit} />
+				)}
+			</div>
 		</dialog>
 	);
 }
@@ -188,7 +199,6 @@ function CreationFields({
 		kind === "session"
 			? catalog?.emidev.workspaces.find((w) => `emidev:${w.root}` === choice)
 			: undefined;
-	const linked = new Set(catalog?.emidev.workspaces.map((w) => w.workspaceId).filter(Boolean));
 	function choose(value: string) {
 		setChoice(value);
 		setAssociation("");
@@ -211,7 +221,15 @@ function CreationFields({
 				</button>
 			</div>
 			{!catalog ? (
-				<p>Loading workspaces…</p>
+				kind === "session" ? (
+					<form aria-busy="true">
+						<WorkspaceSelect value="" onChange={choose} />
+						<div className="creation-session-details" />
+						<button type="submit" disabled>
+							Start Pi
+						</button>
+					</form>
+				) : null
 			) : (
 				<>
 					{kind === "workspace" && catalog.emidev.enabled && (
@@ -240,24 +258,7 @@ function CreationFields({
 							}}
 						>
 							{kind === "session" ? (
-								<label>
-									Workspace
-									<select required value={choice} onChange={(event) => choose(event.target.value)}>
-										<option value="">Choose workspace</option>
-										{catalog.workspaces
-											.filter((w) => !linked.has(w.id))
-											.map((w) => (
-												<option key={w.id} value={w.id}>
-													{w.name}
-												</option>
-											))}
-										{catalog.emidev.workspaces.map((w) => (
-											<option key={w.root} value={`emidev:${w.root}`}>
-												{w.name} · Emidev
-											</option>
-										))}
-									</select>
-								</label>
+								<WorkspaceSelect catalog={catalog} value={choice} onChange={choose} />
 							) : (
 								<label>
 									Workspace name
@@ -366,5 +367,44 @@ function CreationRootFields({
 					</p>
 				)}
 		</div>
+	);
+}
+
+function WorkspaceSelect({
+	catalog,
+	value,
+	onChange,
+}: {
+	catalog?: CreationCatalog;
+	value: string;
+	onChange: (value: string) => void;
+}) {
+	const linked = new Set(catalog?.emidev.workspaces.map((w) => w.workspaceId).filter(Boolean));
+	return (
+		<label>
+			Workspace
+			<select
+				required
+				disabled={!catalog}
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+			>
+				<option value="" disabled hidden>
+					Choose workspace
+				</option>
+				{catalog?.workspaces
+					.filter((w) => !linked.has(w.id))
+					.map((w) => (
+						<option key={w.id} value={w.id}>
+							{w.name}
+						</option>
+					))}
+				{catalog?.emidev.workspaces.map((w) => (
+					<option key={w.root} value={`emidev:${w.root}`}>
+						{w.name} · Emidev
+					</option>
+				))}
+			</select>
+		</label>
 	);
 }

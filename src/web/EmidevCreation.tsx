@@ -84,9 +84,7 @@ export function EmidevCreation({
 					</button>
 				))}
 			</div>
-			<p className="creation-hint">
-				Emidev installs dependencies and starts workspace services before Pi starts.
-			</p>
+			<p className="creation-hint">Emidev start workspace services before Pi starts.</p>
 			{integration.error && <p role="alert">{integration.error}</p>}
 			<button
 				type="submit"
