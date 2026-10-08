@@ -26,7 +26,7 @@ export const ToolSchema = Schema.Struct({
 	outputUnavailable: Schema.optional(Schema.Boolean),
 	id: text,
 	name: text,
-	args: Schema.Unknown,
+	args: Schema.optional(Schema.Unknown),
 	content: Schema.Array(BlockSchema),
 	status: Schema.Literals(["running", "success", "error", "unknown"]),
 });

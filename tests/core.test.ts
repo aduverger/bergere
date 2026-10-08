@@ -8,6 +8,7 @@ import {
 	type Command,
 	decodeCommand,
 	decodeCompanion,
+	decodeServer,
 	diffSnapshot,
 	type Snapshot,
 } from "../src/shared/protocol";
@@ -37,6 +38,61 @@ const cmd: Command = {
 	action: { kind: "prompt", text: "hello", delivery: "send", images: [] },
 };
 describe("protocol recovery", () => {
+	it("round-trips saved nested calls without arguments through registration and updates", () => {
+		const messages = branchMessages([
+			{
+				type: "message",
+				id: "result",
+				message: {
+					role: "toolResult",
+					toolCallId: "parent",
+					toolName: "codemode",
+					content: [],
+					nestedCalls: {
+						complete: false,
+						calls: [
+							{ id: "parent/1", name: "read", arguments: { path: "file.py" }, status: "ok" },
+							{ id: "parent/2", name: "bash", status: "unfinished" },
+						],
+					},
+				},
+			},
+		]);
+		const snapshot = { ...state, revision: 2, messages };
+		const wire = (value: unknown): unknown => JSON.parse(JSON.stringify(value));
+		const registration = decodeCompanion(
+			wire({
+				type: "register",
+				version: 2,
+				paneId: "pane",
+				herdrSocket: "/socket",
+				pid: 1,
+				snapshot,
+			}),
+		);
+		if (registration.type !== "register") throw new Error("Expected registration");
+		expect(registration.snapshot.messages[0]?.nestedTools?.[1]).toMatchObject({
+			id: "parent/2",
+			name: "bash",
+			status: "unknown",
+		});
+		expect(registration.snapshot.messages[0]?.nestedTools?.[1]?.args).toBeUndefined();
+		expect(registration.snapshot.messages[0]?.nestedTools?.[0]?.args).toEqual({ path: "file.py" });
+		const update = {
+			type: "patch",
+			version: 2,
+			paneId: "pane",
+			patch: diffSnapshot(state, snapshot),
+		};
+		for (const decode of [decodeCompanion, decodeServer]) {
+			const decoded = decode(wire(update));
+			if (decoded.type !== "patch") throw new Error("Expected patch");
+			expect(applyPatch(state, decoded.patch)).toEqual(registration.snapshot);
+			expect(decode(wire({ type: "snapshot", version: 2, paneId: "pane", snapshot })).type).toBe(
+				"snapshot",
+			);
+		}
+	});
 	it("reports invalid companion fields without logging payload contents", () => {
 		const registration = {
 			type: "register",
