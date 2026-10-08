@@ -35,6 +35,9 @@ export function EmidevCreation({
 			<label>
 				Workspace name
 				<input
+					autoCapitalize="none"
+					autoCorrect="off"
+					spellCheck={false}
 					required
 					value={name}
 					onChange={(event) => setName(event.target.value)}
@@ -46,6 +49,9 @@ export function EmidevCreation({
 			<label>
 				Repositories
 				<input
+					autoCapitalize="none"
+					autoCorrect="off"
+					spellCheck={false}
 					list="repository-suggestions"
 					value={repository}
 					onChange={(event) => setRepository(event.target.value)}

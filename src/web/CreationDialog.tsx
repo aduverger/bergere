@@ -27,6 +27,7 @@ export function CreationDialog({
 	select: (pane: string) => void;
 }) {
 	const dialog = useRef<HTMLDialogElement>(null);
+	const title = useRef<HTMLHeadingElement>(null);
 	const [catalog, setCatalog] = useState<CreationCatalog>();
 	const [error, setError] = useState("");
 	const [operation, setOperation] = useState<CreationOperation>();
@@ -35,6 +36,7 @@ export function CreationDialog({
 	const [dismissed, setDismissed] = useState(false);
 	useEffect(() => {
 		dialog.current?.showModal();
+		title.current?.focus({ preventScroll: true });
 	}, []);
 	useEffect(() => {
 		connection.creationListener = (message) => {
@@ -103,7 +105,9 @@ export function CreationDialog({
 			onCancel={close}
 		>
 			<header>
-				<h2 id="creation-title">New</h2>
+				<h2 id="creation-title" ref={title} tabIndex={-1}>
+					New
+				</h2>
 				<button
 					type="button"
 					className="icon-button subtle"
@@ -174,12 +178,16 @@ function CreationFields({
 	submit: (request: CreationRequest) => void;
 }) {
 	const [kind, setKind] = useState("session");
-	const [provider, setProvider] = useState("herdr");
+	const [providerChoice, setProvider] = useState("");
+	const provider = providerChoice || (catalog?.emidev.enabled ? "emidev" : "herdr");
 	const [choice, setChoice] = useState("");
 	const [association, setAssociation] = useState("");
 	const [root, setRoot] = useState("~");
 	const [name, setName] = useState("");
-	const emidev = catalog?.emidev.workspaces.find((w) => `emidev:${w.root}` === choice);
+	const emidev =
+		kind === "session"
+			? catalog?.emidev.workspaces.find((w) => `emidev:${w.root}` === choice)
+			: undefined;
 	const linked = new Set(catalog?.emidev.workspaces.map((w) => w.workspaceId).filter(Boolean));
 	function choose(value: string) {
 		setChoice(value);
@@ -254,6 +262,9 @@ function CreationFields({
 								<label>
 									Workspace name
 									<input
+										autoCapitalize="none"
+										autoCorrect="off"
+										spellCheck={false}
 										required
 										maxLength={100}
 										value={name}
@@ -261,56 +272,22 @@ function CreationFields({
 									/>
 								</label>
 							)}
-							{emidev ? (
-								<>
-									<p className="creation-hint">Pi will start in {emidev.root}</p>
-									{!emidev.workspaceId && emidev.candidates.length > 0 && (
-										<label>
-											Herdr space
-											<select
-												required
-												value={association}
-												onChange={(event) => setAssociation(event.target.value)}
-											>
-												<option value="">Choose association</option>
-												{catalog.workspaces
-													.filter((w) => emidev.candidates.includes(w.id))
-													.map((w) => (
-														<option key={w.id} value={w.id}>
-															{w.name}
-														</option>
-													))}
-												<option value="new">Create a new Herdr space</option>
-											</select>
-										</label>
-									)}
-								</>
-							) : (
-								<label>
-									Root directory
-									<input
-										required
-										value={root}
-										onChange={(event) => setRoot(event.target.value)}
-										placeholder="~/code/project"
-									/>
-								</label>
-							)}
-							{kind === "session" &&
-								!emidev &&
-								choice &&
-								!catalog.workspaces.find((w) => w.id === choice)?.savedRoot && (
-									<p className="creation-hint">
-										Suggested from a pane’s directory. Confirm the workspace root before starting
-										Pi.
-									</p>
-								)}
-							<button type="submit" disabled={!online}>
+							<CreationRootFields
+								kind={kind}
+								catalog={catalog}
+								choice={choice}
+								emidev={emidev}
+								association={association}
+								setAssociation={setAssociation}
+								root={root}
+								setRoot={setRoot}
+							/>
+							<button type="submit" disabled={!online || (kind === "session" && !choice)}>
 								{kind === "session" ? "Start Pi" : "Create workspace"}
 							</button>
 						</form>
 					)}
-					{catalog.emidev.error && provider !== "emidev" && (
+					{catalog.emidev.error && (kind === "session" || provider !== "emidev") && (
 						<p className="creation-hint">
 							{catalog.emidev.error} Herdr creation remains available.
 						</p>
@@ -318,5 +295,76 @@ function CreationFields({
 				</>
 			)}
 		</>
+	);
+}
+
+function CreationRootFields({
+	kind,
+	catalog,
+	choice,
+	emidev,
+	association,
+	setAssociation,
+	root,
+	setRoot,
+}: {
+	kind: string;
+	catalog: CreationCatalog;
+	choice: string;
+	emidev: CreationCatalog["emidev"]["workspaces"][number] | undefined;
+	association: string;
+	setAssociation: (value: string) => void;
+	root: string;
+	setRoot: (value: string) => void;
+}) {
+	return (
+		<div className={kind === "session" ? "creation-session-details" : undefined}>
+			{emidev ? (
+				<>
+					<p className="creation-hint">Pi will start in {emidev.root}</p>
+					{!emidev.workspaceId && emidev.candidates.length > 0 && (
+						<label>
+							Herdr space
+							<select
+								required
+								value={association}
+								onChange={(event) => setAssociation(event.target.value)}
+							>
+								<option value="">Choose association</option>
+								{catalog.workspaces
+									.filter((w) => emidev.candidates.includes(w.id))
+									.map((w) => (
+										<option key={w.id} value={w.id}>
+											{w.name}
+										</option>
+									))}
+								<option value="new">Create a new Herdr space</option>
+							</select>
+						</label>
+					)}
+				</>
+			) : kind === "workspace" || choice ? (
+				<label>
+					Root directory
+					<input
+						autoCapitalize="none"
+						autoCorrect="off"
+						spellCheck={false}
+						required
+						value={root}
+						onChange={(event) => setRoot(event.target.value)}
+						placeholder="~/code/project"
+					/>
+				</label>
+			) : null}
+			{kind === "session" &&
+				!emidev &&
+				choice &&
+				!catalog.workspaces.find((w) => w.id === choice)?.savedRoot && (
+					<p className="creation-hint">
+						Suggested from a pane’s directory. Confirm the workspace root before starting Pi.
+					</p>
+				)}
+		</div>
 	);
 }

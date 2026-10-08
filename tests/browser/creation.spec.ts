@@ -18,7 +18,13 @@ test("create Pi sessions and workspaces in real Herdr without Emidev", async ({ 
 		const workspace = original.panes.find((p) => p.pane_id === h.paneId)?.workspace_id;
 		if (!workspace) throw new Error("Missing initial workspace");
 		await open();
+		await expect(page.getByRole("heading", { name: "New", exact: true })).toBeFocused();
+		await expect(page.getByRole("combobox", { name: "Workspace", exact: true })).toBeVisible();
+		await expect(page.getByLabel("Root directory")).toHaveCount(0);
+		await expect(page.getByRole("button", { name: "Start Pi", exact: true })).toBeDisabled();
+		const before = await page.getByRole("dialog").boundingBox();
 		await page.getByRole("combobox", { name: "Workspace", exact: true }).selectOption(workspace);
+		expect((await page.getByRole("dialog").boundingBox())?.height).toBe(before?.height);
 		await expect(page.getByLabel("Root directory")).toHaveValue(await realpath(h.root));
 		await expect(page.getByText("Confirm the workspace root", { exact: false })).toBeVisible();
 		await expect(page.getByLabel("Repositories", { exact: true })).toHaveCount(0);
@@ -97,7 +103,12 @@ test("optional Emidev provisioning survives gateway restart and selects the retu
 			await page.getByRole("button", { name: "Open sessions", exact: true }).click();
 		await page.getByRole("button", { name: "New", exact: true }).click();
 		await page.getByRole("button", { name: "Workspace", exact: true }).click();
-		await page.getByRole("combobox", { name: "Workspace type" }).selectOption("emidev");
+		await expect(page.getByRole("combobox", { name: "Workspace type" })).toHaveValue("emidev");
+		await expect(page.getByLabel("Workspace name")).toHaveAttribute("autocapitalize", "none");
+		await expect(page.getByLabel("Repositories", { exact: true })).toHaveAttribute(
+			"autocapitalize",
+			"none",
+		);
 		await page.getByLabel("Workspace name").fill("emidev-test");
 		await page.getByLabel("Repositories", { exact: true }).fill("emidat-api");
 		await page.getByRole("button", { name: "Add repository" }).click();

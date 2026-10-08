@@ -799,3 +799,8 @@ button > .lucide {
 	gap: 6px;
 	margin: 12px 0;
 }
+
+.creation-session-details {
+	min-height: 160px;
+	display: flow-root;
+}
