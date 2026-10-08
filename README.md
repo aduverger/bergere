@@ -3,9 +3,9 @@
 
 **Your agents, within reach.**
 
-A private, mobile-first web client for **existing Pi processes inside Herdr**. React + Vite render the conversation; a Node.js gateway discovers panes through Herdr and communicates with a companion extension over a private Unix socket. TypeScript and Effect Schema define both sides of the protocol. An Effect scope owns gateway lifetime and cleanup.
+A private, mobile-first web client for **Pi processes inside Herdr**. React + Vite render the conversation; a Node.js gateway discovers panes through Herdr and communicates with a companion extension over a private Unix socket. TypeScript and Effect Schema define both sides of the protocol. An Effect scope owns gateway lifetime and cleanup.
 
-Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable projections and never launches Pi or writes session logs.
+Herdr owns processes. Pi owns conversation state and session files. The gateway keeps disposable conversation projections and never writes Pi session logs. Creation requests launch a runner in a fresh Herdr pane; Herdr owns that runner and the Pi process.
 
 ## Connect your existing local sessions
 
@@ -73,9 +73,35 @@ make stop
 
 `pnpm start` remains the foreground command with explicit environment configuration.
 
+## Create sessions and workspaces
+
+Use **New** in the sidebar:
+
+- **Pi session** selects an existing Herdr space and starts Pi in a new tab. Confirm the root directory when it was inferred from an existing pane.
+- **Workspace** accepts a name and an existing absolute root directory (or `~/path`), creates a Herdr space, and starts Pi in its initial pane.
+
+Both work without Emidev. Run `pnpm build` before starting the gateway, including when using Vite development mode, so the terminal runner is available. `pi` must be available in Herdr's terminal PATH, with the Bergère companion installed. New sessions use normal Pi settings; creation does not install extensions or change existing sessions.
+
+Creation continues when the app closes or the gateway restarts. Reopen **New** to check the current operation in the same browser tab. Durable operation records and root associations live under `creation/` beside the bridge socket, scoped to the Herdr socket. Do not delete these records while a launch is in progress. Lost acknowledgements do not trigger automatic retries. For failed or uncertain launches, inspect the retained Herdr pane before manually recovering; dismissing a notice does not cancel or delete the workspace.
+
+### Optional Emidev integration
+
+Emidev is disabled by default. To enable its separate creation form and workspace discovery:
+
+```sh
+make stop
+BERGERE_EMIDEV=1 make start
+```
+
+Keep any other required environment options, such as `BERGERE_NATIVE_ORIGIN=capacitor://localhost`, on that command. For systemd, add `BERGERE_EMIDEV=1` to the gateway environment file and restart the service. Emidev must be configured for the same OS user and available in both the gateway and Herdr terminal PATH.
+
+**Workspace → Emidev workspace** accepts a canonical lowercase name and repository chips. It creates the Herdr space first, runs `emidev workspace create --json -n NAME -r REPO ...` there, and starts Pi at the returned workspace root. Normal Emidev provisioning and service-start defaults apply. No hardcoded workspace directory is used.
+
+Emidev workspaces created from the terminal also appear in the session picker. Associations use resolved directories and saved Herdr IDs, never matching display names. Ambiguous matches require a choice; workspaces without a Herdr space receive one when starting Pi. Failed Emidev discovery does not disable ordinary Herdr creation. Failed provisioning does not start Pi or remove the partial workspace; recover it from the terminal.
+
 ## Optional iPhone app
 
-Bergère also has a Capacitor iOS wrapper using the same React UI. It bundles the frontend, hides the keyboard accessory bar, and reconnects to the existing gateway on foreground recovery. The web client remains supported. See [iPhone setup and device validation](docs/IOS.md) for Xcode installation, native-origin opt-in, signing, and build commands. Native device validation is still pending.
+Bergère also has a Capacitor iOS wrapper using the same React UI. It bundles the frontend, hides the keyboard accessory bar, and reconnects to the existing gateway on foreground recovery. The web client remains supported. See [iPhone setup and device validation](docs/IOS.md) for Xcode installation, native-origin opt-in, signing, and build commands. Rebuild the native client after UI changes; the EC2 gateway alone cannot update its bundled interface.
 
 ## Build and test locally
 

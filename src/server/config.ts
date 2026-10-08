@@ -6,6 +6,7 @@ export interface Config {
 	login: string;
 	local: boolean;
 	nativeOrigin?: string;
+	emidev?: boolean;
 	herdrSocket: string;
 	bridgeSocket: string;
 	webRoot: string;
@@ -34,6 +35,7 @@ export function config(env: NodeJS.ProcessEnv = process.env): Config {
 		login,
 		local,
 		nativeOrigin,
+		emidev: env.BERGERE_EMIDEV === "1",
 		herdrSocket: env.HERDR_SOCKET_PATH ?? path.join(os.homedir(), ".config/herdr/herdr.sock"),
 		bridgeSocket:
 			env.BERGERE_BRIDGE_SOCKET ?? path.join(os.homedir(), ".local/state/bergere/bridge.sock"),

@@ -1,7 +1,7 @@
 import { build } from "esbuild";
 
 await build({
-	entryPoints: ["src/server/main.ts", "src/extension/index.ts"],
+	entryPoints: ["src/server/main.ts", "src/server/session-runner.ts", "src/extension/index.ts"],
 	outdir: "dist",
 	outbase: "src",
 	bundle: true,

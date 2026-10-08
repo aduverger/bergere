@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { CreationClientSchema, CreationServerSchema } from "./creation.js";
 
 const VERSION = 2;
 const text = Schema.String;
@@ -117,6 +118,7 @@ const CommandSchema = Schema.Struct({
 	action: ActionSchema,
 });
 const ClientSchema = Schema.Union([
+	CreationClientSchema,
 	CommandSchema,
 	Schema.Struct({
 		type: Schema.Literal("subscribe"),
@@ -169,6 +171,7 @@ const SessionSchema = Schema.Struct({
 	reason: text,
 });
 const ServerSchema = Schema.Union([
+	CreationServerSchema,
 	AckSchema,
 	Schema.Struct({
 		type: Schema.Literal("sessions"),

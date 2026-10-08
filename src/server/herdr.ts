@@ -9,6 +9,7 @@ interface Pane {
 	agent?: string;
 	agent_status?: string;
 	cwd?: string;
+	focused?: boolean;
 	terminal_title_stripped?: string;
 	agent_session?: { kind: string; value: string };
 }
@@ -18,7 +19,7 @@ export interface HerdrSnapshot {
 	panes: Pane[];
 	workspaces: { workspace_id: string; label: string }[];
 }
-function herdrRequest(
+export function herdrRequest(
 	path: string,
 	method: string,
 	params: unknown = {},

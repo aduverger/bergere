@@ -1,3 +1,4 @@
+import type { CreationClient, CreationServer } from "../shared/creation";
 import { type Command, decodeServer, type ServerMessage } from "../shared/protocol";
 import { gatewayUrl } from "./gateway-url";
 import { onNativeResume } from "./native";
@@ -7,6 +8,7 @@ export class Connection {
 	private stopped = false;
 	private stopNativeResume?: () => void;
 	private selected = "";
+	creationListener?: (message: CreationServer) => void;
 	constructor(
 		private receive: (message: ServerMessage) => void,
 		private status: (connected: boolean) => void,
@@ -48,7 +50,14 @@ export class Connection {
 		socket.onmessage = (e) => {
 			if (this.socket !== socket) return;
 			try {
-				this.receive(decodeServer(JSON.parse(e.data)));
+				const message = decodeServer(JSON.parse(e.data));
+				if (
+					message.type === "creation-catalog" ||
+					message.type === "creation-operation" ||
+					message.type === "creation-error"
+				)
+					this.creationListener?.(message);
+				else this.receive(message);
 			} catch {
 				socket.close(1008, "Invalid response");
 			}
@@ -65,7 +74,7 @@ export class Connection {
 		if (paneId && this.socket?.readyState === WebSocket.OPEN)
 			this.socket.send(JSON.stringify({ type: "subscribe", version: 2, paneId }));
 	}
-	send(command: Command) {
+	send(command: Command | CreationClient) {
 		if (this.socket?.readyState !== WebSocket.OPEN)
 			throw new Error("Disconnected. Message not sent.");
 		this.socket.send(JSON.stringify(command));

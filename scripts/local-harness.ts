@@ -18,10 +18,14 @@ export async function waitFor<T>(
 	}
 	throw new Error("Timed out waiting for local test state");
 }
-export async function localHarness(port = 8788) {
+export async function localHarness(port = 8788, creation = false) {
 	const root = await mkdtemp(path.join(os.tmpdir(), "bergere-"));
 	await mkdir(path.join(root, "herdr"), { recursive: true });
-	await writeFile(path.join(root, "herdr/config.toml"), "");
+	await writeFile(
+		path.join(root, "herdr/config.toml"),
+		creation ? '[terminal]\ndefault_shell = "/bin/sh"\nshell_mode = "non_login"\n' : "",
+	);
+	await mkdir(path.join(root, "bin"));
 	await mkdir(path.join(root, "pi/extensions"), { recursive: true });
 	await mkdir(path.join(root, "bridge"), { mode: 0o700 });
 	const env = { ...process.env };
@@ -33,6 +37,7 @@ export async function localHarness(port = 8788) {
 		BERGERE_BRIDGE_SOCKET: path.join(root, "bridge/bridge.sock"),
 		BERGERE_TEST_PID_FILE: path.join(root, "pi.pid"),
 	});
+	if (creation) env.PATH = `${path.join(root, "bin")}:${process.env.PATH}`;
 	const herdrSocket = path.join(root, "herdr/herdr.sock");
 	let log = "";
 	const server = spawn("herdr", ["server"], {
@@ -90,12 +95,21 @@ export async function localHarness(port = 8788) {
 			"--extension",
 			path.resolve("companion.js"),
 		];
+		if (creation)
+			await writeFile(
+				path.join(root, "bin/pi"),
+				`#!/bin/sh
+exec ${args.map(quote).join(" ")} "$@"
+`,
+				{ mode: 0o700 },
+			);
 		cli(["pane", "run", paneId, args.map(quote).join(" ")]);
 		const config = {
 			port,
 			origin: `http://127.0.0.1:${port}`,
 			login: "",
 			local: true,
+			emidev: false,
 			herdrSocket,
 			bridgeSocket: path.join(root, "bridge/bridge.sock"),
 			webRoot: path.resolve("dist/web"),

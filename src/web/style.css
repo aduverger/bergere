@@ -739,3 +739,63 @@ button > .lucide {
 .codemode-script[open] > summary > svg {
 	transform: rotate(90deg);
 }
+
+.new-session {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 4px 8px 12px;
+	min-height: 44px;
+}
+.creation-dialog {
+	color: inherit;
+	background: #24211e;
+	border: 1px solid #51483e;
+	border-radius: 20px;
+	width: min(460px, calc(100% - 24px));
+	max-height: calc(var(--app-height) - env(safe-area-inset-top) - 24px);
+	overflow: auto;
+	padding: 20px;
+}
+.creation-dialog::backdrop {
+	background: #0009;
+}
+.creation-dialog header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.creation-dialog h2 {
+	font-size: 18px;
+	margin: 0;
+}
+.creation-dialog label {
+	display: block;
+	margin: 16px 0;
+	font-size: 14px;
+}
+.creation-dialog input,
+.creation-dialog select {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	font-size: 16px;
+	margin-top: 6px;
+}
+.creation-dialog button {
+	min-height: 44px;
+}
+.creation-dialog button[aria-pressed="true"] {
+	border-color: #dca879;
+}
+.creation-hint {
+	color: #aaa094;
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}
+.repository-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 12px 0;
+}

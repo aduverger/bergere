@@ -17,6 +17,7 @@ import { transcriptTools } from "../shared/transcript.js";
 import { authorized } from "./auth.js";
 import { browserMessage, browserTool } from "./browser-transcript.js";
 import type { Config } from "./config.js";
+import { CreationService } from "./creation.js";
 import { getSnapshot, type HerdrSnapshot, watchHerdr } from "./herdr.js";
 
 interface Attachment {
@@ -57,6 +58,7 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 	}
 	let herdr: HerdrSnapshot | undefined;
 	let discoveryError = "Connecting to Herdr…";
+	const creation = new CreationService(c);
 	const attachments = new Map<string, Attachment>();
 	const browsers = new Map<WebSocket, string>();
 	const connections = new Set<net.Socket>();
@@ -413,12 +415,45 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 		ws.on("message", (raw) => {
 			void handleMessage(raw).catch(() => ws.close(1011, "Command failed"));
 		});
+		async function handleCreation(msg: import("../shared/creation.js").CreationClient) {
+			try {
+				if (msg.type === "creation-discover")
+					send(ws, { type: "creation-catalog", version: 2, catalog: await creation.discover() });
+				else {
+					let operation =
+						msg.type === "creation-start"
+							? await creation.start(msg.id, msg.request)
+							: await creation.status(msg.id);
+					const attachment = attachments.get(operation.paneId);
+					if (
+						operation.stage === "starting" &&
+						attachment &&
+						valid(attachment) &&
+						attachment.terminalId === operation.terminalId
+					)
+						operation = { ...operation, stage: "ready" };
+					send(ws, { type: "creation-operation", version: 2, operation });
+				}
+			} catch (error) {
+				send(ws, {
+					type: "creation-error",
+					rejected: msg.type === "creation-start" && !(await creation.hasOperation(msg.id)),
+					version: 2,
+					id: "id" in msg ? msg.id : "",
+					error: error instanceof Error ? error.message : "Creation failed.",
+				});
+			}
+		}
 		async function handleMessage(raw: import("ws").RawData) {
 			let msg: ReturnType<typeof decodeClient>;
 			try {
 				msg = decodeClient(JSON.parse(raw.toString()));
 			} catch {
 				ws.close(1008, "Invalid protocol");
+				return;
+			}
+			if (!("paneId" in msg)) {
+				await handleCreation(msg);
 				return;
 			}
 			if (msg.type === "subscribe") {

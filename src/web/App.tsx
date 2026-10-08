@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { ArrowDown, Menu, X } from "lucide-react";
+import { ArrowDown, Menu, Plus, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
 	applyPatch,
@@ -10,6 +10,7 @@ import {
 	type Snapshot,
 } from "../shared/protocol";
 import { type Attachment, Composer } from "./Composer";
+import { CreationDialog } from "./CreationDialog";
 import { Connection } from "./client";
 import { DialogCard } from "./DialogCard";
 import { onNativeKeyboardHeight } from "./native";
@@ -29,6 +30,7 @@ export function App() {
 	const [ready, setReady] = useState(false);
 	const [notice, setNotice] = useState("");
 	const [uncertain, setUncertain] = useState(false);
+	const [creating, setCreating] = useState(false);
 	const [drawer, setDrawer] = useState(false);
 	const [drafts, setDrafts] = useState<Record<string, string>>({});
 	const [images, setImages] = useState<Record<string, Attachment[]>>({});
@@ -88,6 +90,7 @@ export function App() {
 					acknowledge(msg);
 					return;
 				}
+				if (!("paneId" in msg)) return;
 				if (msg.paneId !== selectedRef.current) return;
 				if (msg.type === "snapshot") {
 					setSnapshot(msg.snapshot);
@@ -241,6 +244,14 @@ export function App() {
 	const groups = groupSessions(sessions);
 	return (
 		<div className="app">
+			{creating && conn.current && (
+				<CreationDialog
+					connection={conn.current}
+					online={online}
+					close={() => setCreating(false)}
+					select={choose}
+				/>
+			)}
 			{drawer && (
 				<button
 					type="button"
@@ -283,6 +294,14 @@ export function App() {
 						</section>
 					))}
 				</nav>
+				<button
+					type="button"
+					className="new-session"
+					disabled={!online}
+					onClick={() => setCreating(true)}
+				>
+					<Plus aria-hidden="true" /> New
+				</button>
 				<footer>
 					<span className={online ? "online" : "offline"}>●</span>{" "}
 					{online ? "Connected" : "Reconnecting…"}

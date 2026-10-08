@@ -3,9 +3,10 @@
 	"entry": [
 		"companion.js",
 		"src/extension/index.ts",
+		"src/server/session-runner.ts",
 		"scripts/*.ts",
 		"tests/fixtures/pi-provider.ts"
 	],
 	"project": ["src/**/*.{ts,tsx}", "scripts/**/*.ts", "tests/**/*.ts", "*.{ts,js}"],
-	"ignoreBinaries": ["herdr", "tailscale"]
+	"ignoreBinaries": ["herdr", "tailscale", "emidev"]
 }
