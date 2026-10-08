@@ -7,6 +7,7 @@ import {
 	applyPatch,
 	type Command,
 	decodeCommand,
+	decodeCompanion,
 	diffSnapshot,
 	type Snapshot,
 } from "../src/shared/protocol";
@@ -36,6 +37,31 @@ const cmd: Command = {
 	action: { kind: "prompt", text: "hello", delivery: "send", images: [] },
 };
 describe("protocol recovery", () => {
+	it("reports invalid companion fields without logging payload contents", () => {
+		const registration = {
+			type: "register",
+			version: 2,
+			paneId: "pane",
+			herdrSocket: "/socket",
+			pid: 1,
+			snapshot: state,
+		};
+		expect(decodeCompanion(registration).type).toBe("register");
+		let diagnostic = "";
+		try {
+			decodeCompanion({
+				...registration,
+				snapshot: {
+					...state,
+					models: [{ provider: "provider", id: "id", name: { secret: "never-log-this" } }],
+				},
+			});
+		} catch (error) {
+			diagnostic = error instanceof Error ? error.message : "";
+		}
+		expect(diagnostic).toContain("snapshot.models.0.name");
+		expect(diagnostic).not.toContain("never-log-this");
+	});
 	it("rejects unsupported versions and malformed commands", () => {
 		expect(() => decodeCommand({ ...cmd, version: 3 })).toThrow();
 		expect(() => decodeCommand({ ...cmd, action: { kind: "shell", text: "bad" } })).toThrow();

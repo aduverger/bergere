@@ -6,6 +6,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { MAX_FRAME_BYTES, readLines, sendLine } from "../shared/lines.js";
 import {
 	applyPatch,
+	CompanionPayloadError,
 	decodeClient,
 	decodeCompanion,
 	type Registration,
@@ -227,7 +228,22 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 		async function register(msg: Registration) {
 			if (path.resolve(msg.herdrSocket) !== path.resolve(c.herdrSocket))
 				throw new Error("Wrong Herdr server");
-			const snapshot = await getSnapshot(c.herdrSocket);
+			const snapshot = await getSnapshot(c.herdrSocket).catch((error: unknown) => {
+				const code = error instanceof Error && "code" in error ? error.code : undefined;
+				if (code === "ENOENT" || code === "ECONNREFUSED" || code === "EACCES")
+					throw new Error(`Herdr snapshot unavailable: ${code}`);
+				if (
+					error instanceof Error &&
+					[
+						"Herdr protocol 22 is required.",
+						"Herdr request timed out",
+						"Herdr connection closed",
+						"Herdr rejected request",
+					].includes(error.message)
+				)
+					throw error;
+				throw new Error("Herdr snapshot unavailable");
+			});
 			if (socket.destroyed) return;
 			const pane = snapshot.panes.find((p) => p.pane_id === msg.paneId);
 			if (!pane) throw new Error("Missing pane");
@@ -284,6 +300,14 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 				})
 				.catch((error: unknown) => {
 					const reasons = [
+						"Herdr snapshot unavailable",
+						"Herdr snapshot unavailable: ENOENT",
+						"Herdr snapshot unavailable: ECONNREFUSED",
+						"Herdr snapshot unavailable: EACCES",
+						"Herdr protocol 22 is required.",
+						"Herdr request timed out",
+						"Herdr connection closed",
+						"Herdr rejected request",
 						"Wrong Herdr server",
 						"Missing pane",
 						"Session mismatch",
@@ -292,9 +316,10 @@ export async function startGateway(c: Config): Promise<() => Promise<void>> {
 						"Companion protocol version mismatch: expected 2; rebuild and reload the companion",
 					];
 					const reason =
-						error instanceof Error && reasons.includes(error.message)
+						error instanceof CompanionPayloadError ||
+						(error instanceof Error && reasons.includes(error.message))
 							? error.message
-							: "Invalid companion payload or Herdr snapshot unavailable";
+							: "Unexpected companion processing failure";
 					console.warn(`Companion registration or protocol rejected: ${reason}`);
 					socket.destroy();
 				});

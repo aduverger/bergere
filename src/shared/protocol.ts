@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema, SchemaIssue } from "effect";
 import { CreationClientSchema, CreationServerSchema } from "./creation.js";
 
 const VERSION = 2;
@@ -210,7 +210,23 @@ export type Session = typeof SessionSchema.Type;
 export type ServerMessage = typeof ServerSchema.Type;
 export type Registration = typeof RegistrationSchema.Type;
 export const decodeClient = Schema.decodeUnknownSync(ClientSchema);
-export const decodeCompanion = Schema.decodeUnknownSync(CompanionSchema);
+export class CompanionPayloadError extends Error {}
+const decodeCompanionMessage = Schema.decodeUnknownSync(CompanionSchema);
+const companionIssues = SchemaIssue.makeFormatterStandardSchemaV1({
+	leafHook: (issue) => issue._tag,
+	checkHook: (issue) => issue._tag,
+});
+export function decodeCompanion(value: unknown) {
+	try {
+		return decodeCompanionMessage(value);
+	} catch (error) {
+		if (!Schema.isSchemaError(error)) throw error;
+		const fields = companionIssues(error.issue)
+			.issues.slice(0, 5)
+			.map((issue) => `${issue.path?.map(String).join(".") || "payload"} (${issue.message})`);
+		throw new CompanionPayloadError(`Invalid companion payload: ${fields.join(", ")}`);
+	}
+}
 export const decodeServer = Schema.decodeUnknownSync(ServerSchema);
 export const decodeCommand = Schema.decodeUnknownSync(CommandSchema);
 
